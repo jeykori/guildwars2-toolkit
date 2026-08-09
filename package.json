@@ -6,6 +6,7 @@
 	],
 	"type": "module",
 	"scripts": {
+		"dev": "cd playground && bun dev",
 		"build": "bash scripts/build.sh",
 		"prepublishOnly": "bun run build",
 		"check": "bunx biome check --write .",
@@ -20,11 +21,19 @@
 		"./types": {
 			"types": "./dist/types/index.d.ts",
 			"import": "./dist/types/index.js"
+		},
+		"./ui": {
+			"types": "./dist/ui/index.d.ts",
+			"import": "./dist/ui/index.js"
 		}
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.7",
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.4",
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8"
 	},
 	"peerDependencies": {
 		"typescript": "^5"

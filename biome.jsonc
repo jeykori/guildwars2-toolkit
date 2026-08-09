@@ -18,7 +18,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["src/ui/components/ui/*.tsx"],
+			"includes": ["playground/public/*", "playground/src/components/ui/*"],
 			"linter": {
 				"enabled": false
 			}
