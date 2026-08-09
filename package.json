@@ -1,7 +1,29 @@
 {
 	"name": "@jeykori/guildwars2-toolkit",
+	"version": "0.0.2",
+	"files": [
+		"dist"
+	],
 	"type": "module",
+	"scripts": {
+		"build": "bash scripts/build.sh",
+		"prepublishOnly": "bun run build",
+		"check": "bunx biome check --write .",
+		"ci": "bunx biome ci .",
+		"typecheck": "bunx tsc --noEmit"
+	},
+	"exports": {
+		"./utils": {
+			"types": "./dist/utils/index.d.ts",
+			"import": "./dist/utils/index.js"
+		},
+		"./types": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/types/index.js"
+		}
+	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.5.7",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
