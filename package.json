@@ -1,0 +1,10 @@
+{
+	"name": "@jeykori/guildwars2-toolkit",
+	"type": "module",
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}
