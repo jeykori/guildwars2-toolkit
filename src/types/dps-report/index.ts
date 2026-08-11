@@ -107,7 +107,7 @@ export type PlayerSummary = {
 	logs: PlayerLogStats[];
 };
 
-export type ReportSummary = {
+export type DpsReportSummary = {
 	overview: {
 		fights: {
 			name: string;

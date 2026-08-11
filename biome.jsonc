@@ -18,10 +18,14 @@
 	},
 	"overrides": [
 		{
+			"includes": ["playground/public/**/*"],
+			"linter": { "enabled": false },
+			"formatter": { "enabled": false },
+			"assist": { "enabled": false }
+		},
+		{
 			"includes": ["playground/public/*", "playground/src/components/ui/*"],
-			"linter": {
-				"enabled": false
-			}
+			"linter": { "enabled": false }
 		},
 		{
 			"includes": ["**/__tests__/**", "**/*.test.ts"],

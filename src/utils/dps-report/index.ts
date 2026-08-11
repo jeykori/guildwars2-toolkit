@@ -1,13 +1,13 @@
 import type {
+	DpsReportSummary,
 	LogData,
 	MechanicDictionaryItem,
 	PlayerSummary,
-	ReportSummary,
 } from "../../types/dps-report";
 
 export * from "./dps-report.mapper";
 
-export const assembleReports = (logs: LogData[]): ReportSummary => {
+export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 	let successCount = 0;
 	let totalDurationMs = 0;
 	let overviewStartTime = 0;
@@ -18,7 +18,7 @@ export const assembleReports = (logs: LogData[]): ReportSummary => {
 	const nameToMasterId = new Map<string, number>();
 
 	const playerMap = new Map<string, PlayerSummary>();
-	const logsArr: ReportSummary["logs"] = [];
+	const logsArr: DpsReportSummary["logs"] = [];
 
 	for (const log of logs) {
 		if (log.success) successCount++;

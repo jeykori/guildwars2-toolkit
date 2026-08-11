@@ -14,15 +14,18 @@ bun build ./src/utils/index.ts \
   --format esm \
   --target node
 
-# # Build React (Browser) - Crucial to externalize react so it isn't bundled!
-# bun build ./src/react/index.ts \
-#   --outdir ./dist/react \
-#   --format esm \
-#   --target browser \
-#   --external react
+# Build React (Browser)
+bun build ./src/ui/index.ts \
+  --outdir ./dist/ui \
+  --format esm \
+  --target browser \
+  --external react \
+  --external react-dom \
+  --external react/jsx-runtime
 
 echo "📝 Generating TypeScript declarations..."
 # Uses your tsconfig.json to map /src to /dist
-bunx tsc --project tsconfig.build.json
+bunx tsc --project tsconfig.build.utils.json
+bunx tsc --project tsconfig.build.ui.json
 
 echo "✅ Build complete!"
