@@ -1,9 +1,12 @@
 {
 	"name": "@jeykori/guildwars2-toolkit",
-	"version": "0.0.2",
+	"version": "0.0.4",
 	"files": [
 		"dist"
 	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"type": "module",
 	"scripts": {
 		"dev": "cd playground && bun dev",

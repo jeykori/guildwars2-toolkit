@@ -23,9 +23,9 @@ bun build ./src/ui/index.ts \
   --external react-dom \
   --external react/jsx-runtime
 
-echo "📝 Generating TypeScript declarations..."
-# Uses your tsconfig.json to map /src to /dist
+echo "📝 Generating Backend TypeScript declarations..."
 bunx tsc --project tsconfig.build.utils.json
+echo "📝 Generating UI TypeScript declarations..."
 bunx tsc --project tsconfig.build.ui.json
 
 echo "✅ Build complete!"

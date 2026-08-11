@@ -16,7 +16,6 @@ export default function ReportSummaryPage() {
 		{ revalidateOnFocus: false },
 	);
 
-	// App-specific side effect (setting the title)
 	useEffect(() => {
 		if (!data) return;
 		const fights = data.overview.fights ?? [];
@@ -27,7 +26,6 @@ export default function ReportSummaryPage() {
 		return <div className="p-8 text-muted-foreground">Loading summary...</div>;
 	if (error || !data) return <NotFoundPage />;
 
-	// Hand off the data to your pure toolkit layout!
 	return (
 		<ToolkitProvider components={shadcn}>
 			<DpsReportSummaryLayout data={data} />
