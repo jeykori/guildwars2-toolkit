@@ -1,3 +1,5 @@
+[![npm version](https://badge.fury.io/js/@jeykori%2Fguildwars2-toolkit.svg)](https://www.npmjs.com/package/@jeykori/guildwars2-toolkit)
+
 # @jeykori/guildwars2-toolkit
 
 Utilities, UI components, and types for Guild Wars 2 development.
