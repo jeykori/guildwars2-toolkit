@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-
-# Exit immediately if any command fails
 set -e
 
 echo "🧹 Cleaning dist folder..."
@@ -8,14 +6,16 @@ rm -rf dist
 
 echo "⚡ Building JavaScript with Bun..."
 
-# Build Utils (Node/Isomorphic)
+# Build Utils
 bun build ./src/utils/index.ts \
+  --production \
   --outdir ./dist/utils \
   --format esm \
   --target node
 
 # Build React (Browser)
 bun build ./src/ui/index.ts \
+  --production \
   --outdir ./dist/ui \
   --format esm \
   --target browser \
