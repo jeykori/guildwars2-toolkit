@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import type { DpsReportSummary } from "../../types";
 import { useToolkitComponents } from "../context/toolkit-context";
-import { DamageStatsTable } from "../internal/dps-report-summary/DamageStatsTable";
-import { LogsView } from "../internal/dps-report-summary/LogsView";
-import { MechanicsView } from "../internal/dps-report-summary/MechanicsView";
-import { ReportFilters } from "../internal/dps-report-summary/ReportFilters";
-import { ReportSummaryHeader } from "../internal/dps-report-summary/ReportSummaryHeader";
-import { SurvivabilityStatsTable } from "../internal/dps-report-summary/SurvivabilityStatsTable";
+import { DamageStatsTable } from "../internal/components/dps-report/DamageStatsTable";
+import { LogsView } from "../internal/components/dps-report/LogsView";
+import { MechanicsView } from "../internal/components/dps-report/MechanicsView";
+import { ReportFilters } from "../internal/components/dps-report/ReportFilters";
+import { ReportSummaryHeader } from "../internal/components/dps-report/ReportSummaryHeader";
+import { SurvivabilityStatsTable } from "../internal/components/dps-report/SurvivabilityStatsTable";
 import { useReportAggregator } from "../internal/hooks/useReportAggregator";
 
 interface DpsReportSummaryLayoutProps {

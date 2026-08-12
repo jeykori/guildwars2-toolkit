@@ -1,5 +1,5 @@
-import { useToolkitComponents } from "../../context";
-import { formatMs } from "../utils/format";
+import { useToolkitComponents } from "../../../context";
+import { formatMs } from "../../utils/format";
 
 interface ReportSummaryHeaderProps {
 	overview: {

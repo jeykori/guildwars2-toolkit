@@ -1,9 +1,12 @@
 import { useState } from "react";
-import type { DpsReportSummary, MechanicSeverityGroup } from "../../../types";
-import { useToolkitComponents } from "../../context";
-import { SortableHeader } from "../components/SortableHeader";
-import type { AggregatedPlayer } from "../hooks/useReportAggregator";
-import { useSortableData } from "../hooks/useSortableData";
+import type {
+	AggregatedPlayer,
+	DpsReportSummary,
+	MechanicSeverityGroup,
+} from "../../../../types";
+import { useToolkitComponents } from "../../../context";
+import { useSortableData } from "../../hooks/useSortableData";
+import { SortableHeader } from "../shared/SortableHeader";
 
 type MechanicsViewProps = {
 	players: AggregatedPlayer[];

@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { useToolkitComponents } from "../../context";
-import { SortableHeader } from "../components/SortableHeader";
-import type { AggregatedPlayer } from "../hooks/useReportAggregator";
-import { useSortableData } from "../hooks/useSortableData";
-import { formatNum, formatPct } from "../utils/format";
+import type { AggregatedPlayer } from "../../../../types";
+import { useToolkitComponents } from "../../../context";
+import { useSortableData } from "../../hooks/useSortableData";
+import { formatNum, formatPct } from "../../utils/format";
+import { SortableHeader } from "../shared/SortableHeader";
 
 type DamageStatsTableProps = {
 	players: AggregatedPlayer[];

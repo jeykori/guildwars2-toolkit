@@ -1,8 +1,8 @@
-import type { LogSummary } from "../../../types";
-import { useToolkitComponents } from "../../context";
-import { SortableHeader } from "../components/SortableHeader";
-import { useSortableData } from "../hooks/useSortableData";
-import { formatMs } from "../utils/format";
+import type { LogSummary } from "../../../../types";
+import { useToolkitComponents } from "../../../context";
+import { useSortableData } from "../../hooks/useSortableData";
+import { formatMs } from "../../utils/format";
+import { SortableHeader } from "../shared/SortableHeader";
 
 type LogsViewProps = {
 	logs: LogSummary[];

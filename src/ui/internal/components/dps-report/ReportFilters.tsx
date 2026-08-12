@@ -1,7 +1,7 @@
 import React from "react";
-import type { DpsReportSummary, LogSummary } from "../../../types";
-import { useToolkitComponents } from "../../context";
-import { formatMs } from "../utils/format";
+import type { DpsReportSummary, LogSummary } from "../../../../types";
+import { useToolkitComponents } from "../../../context";
+import { formatMs } from "../../utils/format";
 
 interface ReportFiltersProps {
 	filteredLogs: LogSummary[];

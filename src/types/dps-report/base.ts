@@ -1,0 +1,48 @@
+export type MechanicSeverityGroup =
+	| "critical"
+	| "high"
+	| "medium"
+	| "low"
+	| "informational"
+	| string;
+
+export type TargetPriority = "MAIN" | "BLOCKING" | "NONBLOCKING";
+
+export type MechanicDictionaryItem = {
+	name: string;
+	severity: MechanicSeverityGroup;
+	description: string;
+};
+
+// ----------------------------------------------------------------------------
+// SHARED BASE TYPES
+// ----------------------------------------------------------------------------
+
+export type LogPhase = {
+	type: "encounter" | "instance" | "subphase" | "timeframe";
+	name: string;
+	start: number;
+	end: number;
+	/** Key: Target index */
+	targetPriorities: Record<number, TargetPriority>;
+};
+
+export type TargetDamageStats = {
+	damage: number;
+	condiDamage: number;
+	powerDamage: number;
+	breakbarDamage: number;
+};
+
+export type PlayerPhaseStats = {
+	quickness: number;
+	alacrity: number;
+	damageTaken: number;
+	downs: number;
+	resses: number;
+	resDuration: number;
+	/** Key: Mechanic ID (local for TLogData, global for TReportSummary) */
+	mechanics: Record<number, number>;
+	/** Key: Target index */
+	targets: Record<number, TargetDamageStats>;
+};

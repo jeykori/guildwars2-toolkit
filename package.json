@@ -20,7 +20,7 @@
 		"prepublishOnly": "bun run build",
 		"check": "bunx biome check --write .",
 		"ci": "bunx biome ci .",
-		"typecheck": "bunx tsc --noEmit"
+		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit"
 	},
 	"exports": {
 		"./utils": {
