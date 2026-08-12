@@ -1,6 +1,6 @@
 {
 	"name": "@jeykori/guildwars2-toolkit",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeykori/guildwars2-toolkit.git"
