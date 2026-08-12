@@ -164,6 +164,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 			account: p.account,
 			characterName: p.name,
 			profession: p.profession,
+			professionIconUrl: p.combatReplayData?.iconURL,
 			group: p.group,
 			phases: [],
 		};

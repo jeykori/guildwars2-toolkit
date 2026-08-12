@@ -40,6 +40,24 @@ interface TooltipProviderProps {
 	delayDuration?: number;
 }
 
+interface TooltipProps {
+	children: ReactNode;
+	defaultOpen?: boolean;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+}
+
+interface TooltipTriggerProps extends Omit<ComponentProps<"button">, "ref"> {
+	asChild?: boolean;
+}
+
+interface TooltipContentProps extends Omit<ComponentProps<"div">, "ref"> {
+	side?: "top" | "right" | "bottom" | "left";
+	align?: "start" | "center" | "end";
+	sideOffset?: number;
+	alignOffset?: number;
+}
+
 // --- Tabs ---
 interface TabsProps
 	extends Omit<ComponentProps<"div">, "defaultValue" | "ref"> {
@@ -82,6 +100,9 @@ export interface ToolkitComponents {
 	TableHeader: ElementType<Omit<ComponentProps<"thead">, "ref">>;
 	TableRow: ElementType<Omit<ComponentProps<"tr">, "ref">>;
 	TooltipProvider: ElementType<TooltipProviderProps>;
+	Tooltip: ElementType<TooltipProps>;
+	TooltipTrigger: ElementType<TooltipTriggerProps>;
+	TooltipContent: ElementType<TooltipContentProps>;
 	Tabs: ElementType<TabsProps>;
 	TabsList: ElementType<TabsListProps>;
 	TabsTrigger: ElementType<TabsTriggerProps>;

@@ -101,6 +101,7 @@ export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 			existingPlayer.logs.push({
 				logId: log.id,
 				characterName: p.characterName,
+				professionIconUrl: p.professionIconUrl,
 				profession: p.profession,
 				group: p.group,
 				phases: mappedPhases,

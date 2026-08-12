@@ -4,6 +4,7 @@ import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { formatNum, formatPct } from "../../utils/format";
 import { SortableHeader } from "../shared/SortableHeader";
+import { PlayerNameCell } from "./PlayerNameCell";
 
 type DamageStatsTableProps = {
 	players: AggregatedPlayer[];
@@ -62,11 +63,12 @@ export function DamageStatsTable({ players }: DamageStatsTableProps) {
 								label="Sub"
 								sortKey="groups"
 								align="left"
+								overlapIcon={true}
 								{...sortableProps}
 							/>
 							<SortableHeader
 								label="Player"
-								sortKey="name"
+								sortKey="primaryName"
 								align="left"
 								{...sortableProps}
 							/>
@@ -100,28 +102,33 @@ export function DamageStatsTable({ players }: DamageStatsTableProps) {
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{sortedPlayers.map((p) => (
-							<TableRow
-								key={p.account}
-								className="odd:bg-row-alt odd:hover:bg-accent"
-							>
-								<TableCell className="font-medium">
-									{p.groups.join(", ")}
-								</TableCell>
-								<TableCell className="font-medium">{p.name}</TableCell>
-								<TableCell className="text-muted-foreground">
-									{p.account}
-								</TableCell>
-								<TableCell>{formatNum(p.averages.targetDps)}</TableCell>
-								<TableCell>{formatNum(p.averages.cleaveDps)}</TableCell>
-								<TableCell className="text-yellow-500 dark:text-yellow-400">
-									{formatPct(p.averages.quickness)}
-								</TableCell>
-								<TableCell className="text-purple-500 dark:text-purple-400">
-									{formatPct(p.averages.alacrity)}
-								</TableCell>
-							</TableRow>
-						))}
+						{sortedPlayers.map((p) => {
+							return (
+								<TableRow
+									key={p.account}
+									className="odd:bg-row-alt odd:hover:bg-accent"
+								>
+									<TableCell className="font-medium text-center">
+										{p.groups.join(", ")}
+									</TableCell>
+									<TableCell className="font-medium">
+										<PlayerNameCell player={p} />
+									</TableCell>
+
+									<TableCell className="text-muted-foreground">
+										{p.account}
+									</TableCell>
+									<TableCell>{formatNum(p.averages.targetDps)}</TableCell>
+									<TableCell>{formatNum(p.averages.cleaveDps)}</TableCell>
+									<TableCell className="text-yellow-500 dark:text-yellow-400">
+										{formatPct(p.averages.quickness)}
+									</TableCell>
+									<TableCell className="text-purple-500 dark:text-purple-400">
+										{formatPct(p.averages.alacrity)}
+									</TableCell>
+								</TableRow>
+							);
+						})}
 					</TableBody>
 					<TableFooter>
 						<TableRow>

@@ -1,6 +1,6 @@
 import type { AggregatedPlayer, DpsReportSummary } from "../../types";
 
-interface AggregationFilters {
+export interface AggregationFilters {
 	validLogIds: Set<string>;
 	selectedPhaseNames: Set<string>;
 	selectedTargetFilters: Set<string>;
@@ -14,6 +14,13 @@ export function aggregatePlayerData(
 
 	return data.players.map((player) => {
 		const playerGroups = new Set<number>();
+
+		// Track unique characters played in these specific logs
+		const activeCharacters = new Map<
+			string,
+			AggregatedPlayer["characters"][number] & { timePlayed: number }
+		>();
+
 		let totalDurationMs = 0;
 		let totalDowns = 0;
 		let totalResses = 0;
@@ -86,15 +93,43 @@ export function aggregatePlayerData(
 
 			if (logHasMatchingPhase) {
 				playerGroups.add(pLog.group);
+				// Record the character and profession they used in this specific log
+				const existingChar = activeCharacters.get(pLog.characterName);
+				activeCharacters.set(pLog.characterName, {
+					name: pLog.characterName,
+					profession: pLog.profession,
+					iconUrl: pLog.professionIconUrl,
+					timePlayed: (existingChar?.timePlayed ?? 0) + logData.durationMs,
+				});
 				validLogCount++;
 			}
 		});
 
 		const durationSec = totalDurationMs / 1000;
+		const charactersList = Array.from(activeCharacters.values()).sort(
+			(a, b) => b.timePlayed - a.timePlayed,
+		);
+		const uniqueProfessionsMap = new Map<
+			string,
+			{ name: string; iconUrl?: string }
+		>();
+		charactersList.forEach((c) => {
+			if (!uniqueProfessionsMap.has(c.profession)) {
+				uniqueProfessionsMap.set(c.profession, {
+					name: c.profession,
+					iconUrl: c.iconUrl,
+				});
+			}
+		});
+		const uniqueProfessions = Array.from(uniqueProfessionsMap.values());
 
 		return {
 			account: player.account,
-			name: player.lastSeenCharacterName,
+			// If they played characters in this filter, show the first one. Otherwise fallback to the assembly lastSeen name.
+			primaryName: charactersList[0]?.name ?? player.lastSeenCharacterName,
+			primaryIconUrl: charactersList[0]?.iconUrl,
+			characters: charactersList,
+			professions: uniqueProfessions,
 			groups: Array.from(playerGroups).sort(),
 			totals: {
 				downs: totalDowns,

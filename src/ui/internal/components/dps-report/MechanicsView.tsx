@@ -7,6 +7,7 @@ import type {
 import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { SortableHeader } from "../shared/SortableHeader";
+import { PlayerNameCell } from "./PlayerNameCell";
 
 type MechanicsViewProps = {
 	players: AggregatedPlayer[];
@@ -127,7 +128,7 @@ export function MechanicsView({ players, dictionary }: MechanicsViewProps) {
 								className="group odd:bg-row-alt hover:bg-accent"
 							>
 								<TableCell className="font-medium sticky left-0 z-10 bg-card border-r group-odd:bg-row-alt group-hover:bg-accent transition-colors">
-									{p.name}
+									<PlayerNameCell player={p} />
 								</TableCell>
 								{columns.map((col) => {
 									const val = p[viewType].mechanics[col.originalIndex] || 0;

@@ -8,6 +8,7 @@ export type LogPlayerStats = {
 	account: string;
 	characterName: string;
 	profession: string;
+	professionIconUrl?: string;
 	group: number;
 	phases: PlayerPhaseStats[];
 };

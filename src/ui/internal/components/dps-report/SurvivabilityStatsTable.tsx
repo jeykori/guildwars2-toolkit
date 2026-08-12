@@ -3,6 +3,7 @@ import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { formatNum } from "../../utils/format";
 import { SortableHeader } from "../shared/SortableHeader";
+import { PlayerNameCell } from "./PlayerNameCell";
 
 export function SurvivabilityStatsTable({
 	players,
@@ -30,6 +31,7 @@ export function SurvivabilityStatsTable({
 								label="Sub"
 								sortKey="groups"
 								align="left"
+								overlapIcon={true}
 								{...sortableProps}
 							/>
 							<SortableHeader
@@ -73,10 +75,12 @@ export function SurvivabilityStatsTable({
 								key={p.account}
 								className="odd:bg-row-alt odd:hover:bg-accent"
 							>
-								<TableCell className="font-medium">
+								<TableCell className="font-medium text-center">
 									{p.groups.join(", ")}
 								</TableCell>
-								<TableCell className="font-medium">{p.name}</TableCell>
+								<TableCell className="font-medium">
+									<PlayerNameCell player={p} />
+								</TableCell>
 								<TableCell className="text-muted-foreground">
 									{p.account}
 								</TableCell>

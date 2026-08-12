@@ -18,6 +18,7 @@
 		"dev": "cd playground && bun dev",
 		"build": "bash scripts/build.sh",
 		"prepublishOnly": "bun run build",
+		"regen": "bun run --tsconfig-override=playground/tsconfig.app.json scripts/regenerate-data.ts",
 		"check": "bunx biome check --write .",
 		"ci": "bunx biome ci .",
 		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit"

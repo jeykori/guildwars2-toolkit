@@ -1,6 +1,19 @@
 export type AggregatedPlayer = {
 	account: string;
-	name: string;
+	/** Most used character name */
+	primaryName: string;
+	primaryIconUrl?: string;
+	/** Unique characters */
+	characters: {
+		name: string;
+		profession: string;
+		iconUrl?: string;
+	}[];
+	/** Unique professions */
+	professions: {
+		name: string;
+		iconUrl?: string;
+	}[];
 	groups: number[];
 	totals: {
 		downs: number;
