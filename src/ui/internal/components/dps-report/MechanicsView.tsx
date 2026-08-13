@@ -116,7 +116,7 @@ export function MechanicsView({ players, dictionary }: MechanicsViewProps) {
 									title={col.description}
 									requestSort={requestSort}
 									sortConfig={sortConfig}
-									className="max-w-[200px]"
+									className="max-w-50"
 								/>
 							))}
 						</TableRow>

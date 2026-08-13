@@ -26,13 +26,13 @@ export function SortableHeader({
 
 	const innerContent = (
 		<div
-			className={`relative flex items-center ${overlapIcon ? "" : "gap-1"} ${
+			className={`relative flex items-center w-full ${overlapIcon ? "" : "gap-1"} ${
 				align === "right" ? "justify-end" : "justify-start"
 			}`}
 		>
 			<span className="truncate">{label}</span>
 			<span
-				className={`flex-shrink-0 flex justify-center w-3 text-primary ${
+				className={`shrink-0 flex justify-center w-3 text-primary ${
 					overlapIcon ? "absolute left-full ml-1" : ""
 				}`}
 			>
