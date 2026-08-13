@@ -47,9 +47,7 @@ interface TooltipProps {
 	onOpenChange?: (open: boolean) => void;
 }
 
-interface TooltipTriggerProps extends Omit<ComponentProps<"button">, "ref"> {
-	asChild?: boolean;
-}
+interface TooltipTriggerProps extends Omit<ComponentProps<"button">, "ref"> {}
 
 interface TooltipContentProps extends Omit<ComponentProps<"div">, "ref"> {
 	side?: "top" | "right" | "bottom" | "left";

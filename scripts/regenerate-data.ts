@@ -48,7 +48,10 @@ async function main() {
 				const mappedData = mapDpsReport(rawJson);
 
 				// Save as formatted JSON using Bun's native write
-				await Bun.write(outputPath, JSON.stringify(mappedData));
+				await Bun.write(
+					outputPath,
+					JSON.stringify({ id: link, ...mappedData }),
+				);
 
 				console.log(`  ✅ Saved ${folderName}/${fileNum}.json`);
 			} catch (error) {

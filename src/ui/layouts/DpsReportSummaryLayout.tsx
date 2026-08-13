@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import type { DpsReportSummary } from "../../types";
 import { useToolkitComponents } from "../context/toolkit-context";
 import { DamageStatsTable } from "../internal/components/dps-report/DamageStatsTable";
+import { EncounterDetailsView } from "../internal/components/dps-report/EncounterDetailsView";
+import { EncounterSummaryWidgets } from "../internal/components/dps-report/EncounterSummaryWidget";
 import { LogsView } from "../internal/components/dps-report/LogsView";
 import { MechanicsView } from "../internal/components/dps-report/MechanicsView";
 import { ReportFilters } from "../internal/components/dps-report/ReportFilters";
@@ -27,7 +29,10 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 		toggleTargetFilter,
 		filteredLogs,
 		aggregatedPlayers,
+		activeMetricsDictionary,
+		aggregatedSquadMetrics,
 	} = useReportAggregator(data);
+
 	const { overview } = data;
 
 	const sortedAllLogs = useMemo(() => {
@@ -36,6 +41,22 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 				new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
 		);
 	}, [data]);
+
+	const summaryMetrics = useMemo(
+		() =>
+			activeMetricsDictionary.filter(
+				(m) => m.placement === "SUMMARY" || m.placement === "BOTH",
+			),
+		[activeMetricsDictionary],
+	);
+
+	const detailMetrics = useMemo(
+		() =>
+			activeMetricsDictionary.filter(
+				(m) => m.placement === "DETAIL_TAB" || m.placement === "BOTH",
+			),
+		[activeMetricsDictionary],
+	);
 
 	const { TooltipProvider, Tabs, TabsList, TabsTrigger, TabsContent } =
 		useToolkitComponents();
@@ -61,15 +82,25 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 					toggleTargetFilter={toggleTargetFilter}
 				/>
 
-				{/* Tabs */}
 				<Tabs defaultValue="main" className="space-y-6">
 					<TabsList>
 						<TabsTrigger value="main">Performance Stats</TabsTrigger>
 						<TabsTrigger value="mechanics">Mechanics</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
+						{detailMetrics.length > 0 && (
+							<TabsTrigger value="encounter-details">
+								Encounter Details
+							</TabsTrigger>
+						)}
 					</TabsList>
 
 					<TabsContent value="main" className="space-y-8">
+						<EncounterSummaryWidgets
+							metrics={summaryMetrics}
+							aggregatedSquadMetrics={aggregatedSquadMetrics}
+							aggregatedPlayers={aggregatedPlayers}
+							filteredLogs={filteredLogs}
+						/>
 						<DamageStatsTable players={aggregatedPlayers} />
 						<SurvivabilityStatsTable players={aggregatedPlayers} />
 					</TabsContent>
@@ -84,6 +115,17 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 					<TabsContent value="logs">
 						<LogsView logs={filteredLogs} />
 					</TabsContent>
+
+					{detailMetrics.length > 0 && (
+						<TabsContent value="encounter-details">
+							<EncounterDetailsView
+								metrics={detailMetrics}
+								aggregatedSquadMetrics={aggregatedSquadMetrics}
+								aggregatedPlayers={aggregatedPlayers}
+								filteredLogs={filteredLogs}
+							/>
+						</TabsContent>
+					)}
 				</Tabs>
 			</div>
 		</TooltipProvider>

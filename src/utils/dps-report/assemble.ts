@@ -1,9 +1,11 @@
 import type {
+	CustomMetricDefinition,
 	DpsReportSummary,
 	LogData,
 	MechanicDictionaryItem,
 	PlayerSummary,
 } from "../../types/dps-report";
+import { getPluginsForTriggers } from "./plugins";
 
 export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 	let successCount = 0;
@@ -14,6 +16,32 @@ export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 	const fightsMap = new Map<string, { name: string; iconUrl: string }>();
 	const masterDictionary: MechanicDictionaryItem[] = [];
 	const nameToMasterId = new Map<string, number>();
+
+	const uniqueTriggerIds = new Set(logs.map((l) => l.triggerId));
+	const activePlugins = getPluginsForTriggers(Array.from(uniqueTriggerIds));
+	const dictionaryMap = new Map<string, CustomMetricDefinition>();
+	activePlugins.forEach((plugin) => {
+		plugin.dictionary.forEach((metric) => {
+			const resolvedTriggerIds = metric.isGlobal
+				? []
+				: (metric.triggerIds ?? plugin.triggerIds);
+
+			if (dictionaryMap.has(metric.id)) {
+				const existing = dictionaryMap.get(metric.id);
+				if (existing && !existing.isGlobal) {
+					existing.triggerIds = Array.from(
+						new Set([...(existing.triggerIds || []), ...resolvedTriggerIds]),
+					);
+				}
+			} else {
+				dictionaryMap.set(metric.id, {
+					...metric,
+					triggerIds: resolvedTriggerIds,
+				});
+			}
+		});
+	});
+	const combinedDictionary = Array.from(dictionaryMap.values());
 
 	const playerMap = new Map<string, PlayerSummary>();
 	const logsArr: DpsReportSummary["logs"] = [];
@@ -53,6 +81,7 @@ export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 			maxHealthPercentBurned: log.maxHealthPercentBurned,
 			targets: log.targets,
 			phases: log.phases,
+			customMetrics: log.customMetrics,
 		});
 
 		// 1. Map local mechanic IDs to global master IDs for this assembly
@@ -121,6 +150,7 @@ export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 			endTime: overviewEndTime ? new Date(overviewEndTime).toISOString() : "",
 		},
 		mechanicsDictionary: masterDictionary,
+		customMetricsDictionary: combinedDictionary,
 		logs: logsArr,
 		players: Array.from(playerMap.values()),
 	};

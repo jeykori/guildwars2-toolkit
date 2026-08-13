@@ -1,12 +1,52 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+	type Dispatch,
+	type SetStateAction,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import type {
+	AggregatedPlayer,
+	CustomMetricDefinition,
 	DpsReportSummary,
 	LogPhase,
+	LogSummary,
 	TargetPriority,
 } from "../../../types";
-import { aggregatePlayerData } from "../../../utils/dps-report";
+import {
+	aggregatePlayerData,
+	aggregateSquadData,
+	getActiveMetricsDictionary,
+} from "../../../utils/dps-report";
 
-export function useReportAggregator(data: DpsReportSummary | undefined) {
+export interface UseReportAggregatorResult {
+	maxHpLeft: number;
+	setMaxHpLeft: Dispatch<SetStateAction<number>>;
+	excludedLogIds: Set<string>;
+	toggleLog: (id: string) => void;
+	availablePhases: {
+		name: string;
+		type: LogPhase["type"];
+		start: number;
+		end: number;
+	}[];
+	selectedPhaseNames: Set<string>;
+	togglePhase: (name: string, type: string) => void;
+	availableTargets: {
+		name: string;
+		priorities: TargetPriority[];
+	}[];
+	selectedTargetFilters: Set<string>;
+	toggleTargetFilter: (filterKey: string) => void;
+	filteredLogs: LogSummary[];
+	aggregatedPlayers: AggregatedPlayer[];
+	activeMetricsDictionary: CustomMetricDefinition[];
+	aggregatedSquadMetrics: Record<string, number>;
+}
+
+export function useReportAggregator(
+	data: DpsReportSummary | undefined,
+): UseReportAggregatorResult {
 	const [maxHpLeft, setMaxHpLeft] = useState<number>(100);
 	const [excludedLogIds, setExcludedLogIds] = useState<Set<string>>(new Set());
 	const [selectedPhaseNames, setSelectedPhaseNames] = useState<Set<string>>(
@@ -160,6 +200,21 @@ export function useReportAggregator(data: DpsReportSummary | undefined) {
 			});
 	}, [filteredLogs, selectedPhaseNames]);
 
+	const activeMetricsDictionary = useMemo(() => {
+		return getActiveMetricsDictionary(
+			data?.customMetricsDictionary,
+			filteredLogs,
+		);
+	}, [data?.customMetricsDictionary, filteredLogs]);
+
+	const aggregatedSquadMetrics = useMemo(() => {
+		return aggregateSquadData(
+			filteredLogs,
+			selectedPhaseNames,
+			activeMetricsDictionary,
+		);
+	}, [filteredLogs, selectedPhaseNames, activeMetricsDictionary]);
+
 	const aggregatedPlayers = useMemo(() => {
 		if (!data) return [];
 
@@ -167,8 +222,15 @@ export function useReportAggregator(data: DpsReportSummary | undefined) {
 			validLogIds: new Set(filteredLogs.map((l) => l.id)),
 			selectedPhaseNames,
 			selectedTargetFilters,
+			activeMetricsDictionary,
 		});
-	}, [data, filteredLogs, selectedPhaseNames, selectedTargetFilters]);
+	}, [
+		data,
+		filteredLogs,
+		selectedPhaseNames,
+		selectedTargetFilters,
+		activeMetricsDictionary,
+	]);
 
 	return {
 		maxHpLeft,
@@ -183,5 +245,7 @@ export function useReportAggregator(data: DpsReportSummary | undefined) {
 		toggleTargetFilter,
 		filteredLogs,
 		aggregatedPlayers,
+		activeMetricsDictionary,
+		aggregatedSquadMetrics,
 	};
 }

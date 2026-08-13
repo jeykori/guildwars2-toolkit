@@ -29,4 +29,10 @@ export type AggregatedPlayer = {
 		damageTaken: number;
 		mechanics: Record<number, number>;
 	};
+	/**
+	 * Resolved custom metrics.
+	 * The meaning of the value (Total, Average, Max) is dictated by
+	 * the metric's AggregationRule in the dictionary.
+	 */
+	customMetrics: Record<string, number>;
 };

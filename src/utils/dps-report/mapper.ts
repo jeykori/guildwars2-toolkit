@@ -13,6 +13,7 @@ import {
 	PHASE_TYPE_MAP,
 	SEVERITY_MAP,
 } from "./constants";
+import { getPluginsForTriggers } from "./plugins";
 
 type TMappedReport = Omit<LogData, "id">;
 
@@ -65,7 +66,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 			}
 			return acc;
 		},
-		[] as LogData["targets"],
+		[] as TMappedReport["targets"],
 	);
 
 	// ============================================================================
@@ -92,6 +93,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 			start: p.start,
 			end: p.end,
 			targetPriorities: mappedTargetPriorities,
+			customMetrics: {},
 		};
 	});
 
@@ -208,6 +210,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 				resDuration: p.support?.[phaseIdx]?.resurrectTime ?? 0,
 				mechanics: mechanicsForPhase,
 				targets: targetStats,
+				customMetrics: {},
 			});
 		}
 
@@ -215,9 +218,9 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 	}
 
 	// ============================================================================
-	// 6. Return Final Document
+	// 6. Build Base Document
 	// ============================================================================
-	return {
+	let mappedReport: TMappedReport = {
 		triggerId: report.triggerID,
 		recordedBy: report.recordedAccountBy,
 		startTime: new Date(report.timeStartStd).toISOString(),
@@ -233,5 +236,19 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 		phases,
 		mechanicsDictionary,
 		players,
+		customMetrics: {},
 	};
+
+	// ============================================================================
+	// 7. Apply Encounter-Specific Plugins
+	// ============================================================================
+	const activePlugins = getPluginsForTriggers([mappedReport.triggerId]);
+
+	for (const plugin of activePlugins) {
+		if (plugin.parseLog) {
+			mappedReport = plugin.parseLog(report, mappedReport);
+		}
+	}
+
+	return mappedReport;
 };

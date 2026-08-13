@@ -13,8 +13,11 @@ export default defineConfig({
 	],
 	resolve: {
 		alias: {
-			"@": path.resolve(__dirname, "./src"),
-			"@jeykori/guildwars2-toolkit": path.resolve(__dirname, "../src"),
+			"@": path.resolve(import.meta.dirname, "./src"),
+			"@jeykori/guildwars2-toolkit": path.resolve(
+				import.meta.dirname,
+				"../src",
+			),
 		},
 	},
 });

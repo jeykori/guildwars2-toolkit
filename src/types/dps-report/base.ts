@@ -25,6 +25,8 @@ export type LogPhase = {
 	end: number;
 	/** Key: Target index */
 	targetPriorities: Record<number, TargetPriority>;
+	/** Key: Custom metric ID */
+	customMetrics: Record<string, number>;
 };
 
 export type TargetDamageStats = {
@@ -45,4 +47,6 @@ export type PlayerPhaseStats = {
 	mechanics: Record<number, number>;
 	/** Key: Target index */
 	targets: Record<number, TargetDamageStats>;
+	/** Key: Custom metric ID */
+	customMetrics: Record<string, number>;
 };

@@ -38,4 +38,6 @@ export type LogData = {
 	/** Local dictionary for this specific log */
 	mechanicsDictionary: MechanicDictionaryItem[];
 	players: LogPlayerStats[];
+	/** Log-level custom metrics (e.g. squad DPS from 10%, enrage time left) */
+	customMetrics: Record<string, number>;
 };
