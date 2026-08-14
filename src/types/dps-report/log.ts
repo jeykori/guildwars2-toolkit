@@ -3,6 +3,7 @@ import type {
 	MechanicDictionaryItem,
 	PlayerPhaseStats,
 } from "./base";
+import type { MetricValue } from "./custom-metrics";
 
 export type LogPlayerStats = {
 	account: string;
@@ -39,5 +40,5 @@ export type LogData = {
 	mechanicsDictionary: MechanicDictionaryItem[];
 	players: LogPlayerStats[];
 	/** Log-level custom metrics (e.g. squad DPS from 10%, enrage time left) */
-	customMetrics: Record<string, number>;
+	customMetrics: Record<string, MetricValue>;
 };

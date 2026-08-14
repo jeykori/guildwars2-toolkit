@@ -43,6 +43,11 @@ export type DpsReportJson = {
 	targets: Target[];
 	mechanics: Mechanic[];
 	phases: Phase[];
+	combatReplayMetaData: {
+		inchToPixel: number;
+		pollingRate: number;
+		sizes: [number, number];
+	};
 };
 
 type Target = {
@@ -91,6 +96,11 @@ type CombatData = {
 	start: number;
 	end: number;
 	iconURL?: string;
+	/**
+	 * List of 2D positions in pixels.
+	 * The corresponding time for a given index i is
+	 * ceil(Start / JsonCombatReplayMetaData.PollingRate) * JsonCombatReplayMetaData.PollingRate + i * JsonCombatReplayMetaData.PollingRate.
+	 */
 	positions: [number, number][];
 	orientations: number[];
 	/** time intervals per phase */

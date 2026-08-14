@@ -2,12 +2,13 @@ import type {
 	AggregatedPlayer,
 	CustomMetricDefinition,
 	LogSummary,
+	MetricValue,
 } from "../../../../types";
 import { MetricWidgetRenderer } from "./widgets/MetricWidgetRenderer";
 
 interface EncounterDetailsViewProps {
 	metrics: CustomMetricDefinition[];
-	aggregatedSquadMetrics: Record<string, number>;
+	aggregatedSquadMetrics: Record<string, MetricValue>;
 	aggregatedPlayers: AggregatedPlayer[];
 	filteredLogs: LogSummary[];
 }

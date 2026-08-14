@@ -4,7 +4,11 @@ import type {
 	DpsReportSummary,
 	LogPhase,
 	LogSummary,
+	MatrixMetricValue,
+	MetricValue,
 	PlayerSummary,
+	RateMetricValue,
+	ScalarMetricValue,
 	TargetDamageStats,
 } from "../../types";
 
@@ -40,30 +44,93 @@ export function getActiveMetricsDictionary(
 // ----------------------------------------------------------------------------
 // NON-EXPORTED HELPER FUNCTIONS
 // ----------------------------------------------------------------------------
+
 export function applyAggregationRules(
-	dataToAggregate: Record<string, number[]>,
+	dataToAggregate: MetricValue[],
+	metricDef: CustomMetricDefinition,
+): MetricValue | null {
+	if (dataToAggregate.length === 0) return null;
+
+	// 1. Tell TypeScript we do not squash GRAPH data into a single value.
+	// This narrows metricDef to (ScalarMetric | PlayerTableMetric) for the rest of the function!
+	if (metricDef.displayType === "GRAPH") {
+		return null;
+	}
+
+	const dataType = dataToAggregate[0]?.dataType;
+
+	switch (dataType) {
+		case "scalar": {
+			const scalarVals = dataToAggregate.filter(
+				(m): m is ScalarMetricValue => m.dataType === "scalar",
+			);
+
+			const vals = scalarVals.map((m) => m.value);
+			let aggregatedValue = 0;
+
+			// 2. No more TS errors! It knows aggregation exists here.
+			if (metricDef.aggregation === "SUM") {
+				aggregatedValue = vals.reduce((a, b) => a + b, 0);
+			} else if (metricDef.aggregation === "AVG") {
+				aggregatedValue = vals.reduce((a, b) => a + b, 0) / vals.length;
+			} else if (metricDef.aggregation === "MAX") {
+				aggregatedValue = Math.max(...vals);
+			} else if (metricDef.aggregation === "MIN") {
+				aggregatedValue = Math.min(...vals);
+			}
+
+			return { dataType: "scalar", value: aggregatedValue };
+		}
+
+		case "matrix": {
+			const matrixVals = dataToAggregate.filter(
+				(m): m is MatrixMetricValue => m.dataType === "matrix",
+			);
+
+			const aggregatedValues: Record<string, number> = {};
+
+			for (const m of matrixVals) {
+				for (const [key, val] of Object.entries(m.values)) {
+					// If you eventually want AVG for tables, you'd apply metricDef.aggregation here too!
+					// For now, defaulting to SUM is standard for table matrices.
+					aggregatedValues[key] = (aggregatedValues[key] || 0) + val;
+				}
+			}
+			return { dataType: "matrix", values: aggregatedValues };
+		}
+
+		case "rate": {
+			const rateVals = dataToAggregate.filter(
+				(m): m is RateMetricValue => m.dataType === "rate",
+			);
+
+			const totalCount = rateVals.reduce((sum, m) => sum + m.count, 0);
+			const totalOutOf = rateVals.reduce((sum, m) => sum + m.outOf, 0);
+
+			return { dataType: "rate", count: totalCount, outOf: totalOutOf };
+		}
+
+		default:
+			return null;
+	}
+}
+
+// NEW HELPER: Maps over a collected dictionary of MetricValues and applies the rules
+function aggregateMetricsRecord(
+	collectedData: Record<string, MetricValue[]>,
 	dictionary: CustomMetricDefinition[],
-): Record<string, number> {
-	const result: Record<string, number> = {};
+): Record<string, MetricValue> {
+	const result: Record<string, MetricValue> = {};
 
-	Object.entries(dataToAggregate).forEach(([id, values]) => {
-		if (values.length === 0) return;
-
-		const metricDef = dictionary.find((m) => m.id === id);
-		if (!metricDef) return;
-
-		// We do not squash GRAPH data into a single scalar value
-		if (metricDef.displayType === "GRAPH") return;
-
-		// TypeScript knows that if it's not a GRAPH, it has an `aggregation` property
-		const rule = metricDef.aggregation;
-
-		if (rule === "SUM") result[id] = values.reduce((a, b) => a + b, 0);
-		if (rule === "MAX") result[id] = Math.max(...values);
-		if (rule === "MIN") result[id] = Math.min(...values);
-		if (rule === "AVG")
-			result[id] = values.reduce((a, b) => a + b, 0) / values.length;
-	});
+	for (const metricDef of dictionary) {
+		const data = collectedData[metricDef.id];
+		if (data && data.length > 0) {
+			const aggregated = applyAggregationRules(data, metricDef);
+			if (aggregated !== null) {
+				result[metricDef.id] = aggregated;
+			}
+		}
+	}
 
 	return result;
 }
@@ -150,7 +217,8 @@ function processPlayerLogs(
 		totalResDuration: 0,
 		totalDamageTaken: 0,
 		totalMechanics: {} as Record<number, number>,
-		customMetricsData: {} as Record<string, number[]>,
+		// UPDATED: Now stores an array of the discriminated union MetricValue
+		customMetricsData: {} as Record<string, MetricValue[]>,
 		targetDamage: 0,
 		cleaveDamage: 0,
 		weightedQuickness: 0,
@@ -193,7 +261,7 @@ function processPlayerLogs(
 					(stats.totalMechanics[numId] || 0) + count;
 			});
 
-			// Accumulate custom metrics
+			// Accumulate custom metrics (MetricValues)
 			Object.entries(pPhase.customMetrics || {}).forEach(([id, val]) => {
 				if (!stats.customMetricsData[id]) stats.customMetricsData[id] = [];
 				stats.customMetricsData[id].push(val);
@@ -235,11 +303,12 @@ export function aggregateSquadData(
 	logs: LogSummary[],
 	selectedPhaseNames: Set<string>,
 	activeDictionary: CustomMetricDefinition[],
-): Record<string, number> {
-	const customMetricsData: Record<string, number[]> = {};
+): Record<string, MetricValue> {
+	// UPDATED RETURN TYPE
+	const customMetricsData: Record<string, MetricValue[]> = {};
 
 	logs.forEach((log) => {
-		// Collect Log-level metrics (applies to the whole pull, ignores UI phase selection)
+		// Collect Log-level metrics
 		Object.entries(log.customMetrics || {}).forEach(([id, val]) => {
 			if (!customMetricsData[id]) customMetricsData[id] = [];
 			customMetricsData[id].push(val);
@@ -256,7 +325,8 @@ export function aggregateSquadData(
 		});
 	});
 
-	return applyAggregationRules(customMetricsData, activeDictionary);
+	// Use the new helper to process the collected arrays
+	return aggregateMetricsRecord(customMetricsData, activeDictionary);
 }
 
 export function aggregatePlayerData(
@@ -308,7 +378,8 @@ export function aggregatePlayerData(
 					]),
 				),
 			},
-			customMetrics: applyAggregationRules(
+			// UPDATED: Process the player's custom metrics using the new helper
+			customMetrics: aggregateMetricsRecord(
 				stats.customMetricsData,
 				filters.activeMetricsDictionary,
 			),

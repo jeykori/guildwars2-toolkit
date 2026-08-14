@@ -1,10 +1,14 @@
-import type { LogSummary, ScalarMetric } from "../../../../../types";
+import type {
+	LogSummary,
+	MetricValue,
+	ScalarMetric,
+} from "../../../../../types";
 import { evaluateThreshold } from "../../../../../utils/dps-report";
 import { useToolkitComponents } from "../../../../context";
 
 interface ScalarMetricWidgetProps {
 	metric: ScalarMetric;
-	value: number;
+	value?: MetricValue; // Made optional just in case the data is missing
 	filteredLogs: LogSummary[];
 }
 
@@ -21,10 +25,28 @@ export function ScalarMetricWidget({
 		CardHeader,
 		CardTitle,
 		CardDescription,
+		CardContent,
 	} = useToolkitComponents();
 
+	// 1. Safely extract the raw number based on the dataType
+	let numericValue = 0;
+	let formattedValue = "0";
+
+	if (value?.dataType === "scalar") {
+		numericValue = value.value;
+		formattedValue = (Math.round(numericValue * 10) / 10).toLocaleString();
+	} else if (value?.dataType === "rate") {
+		// Treat rates as percentages (0 to 100) for threshold evaluation
+		const percent = value.outOf > 0 ? (value.count / value.outOf) * 100 : 0;
+		numericValue = percent;
+		formattedValue = `${(Math.round(percent * 10) / 10).toLocaleString()}%`;
+	} else if (value?.dataType === "matrix") {
+		formattedValue = "Unsupported Format";
+	}
+
+	// 2. Evaluate threshold using the extracted numeric value
 	const { color, description, tooltip } = evaluateThreshold(
-		value,
+		numericValue,
 		metric.thresholds,
 		filteredLogs,
 	);
@@ -55,24 +77,31 @@ export function ScalarMetricWidget({
 			break;
 	}
 
-	const formattedValue =
-		typeof value === "number"
-			? (Math.round(value * 10) / 10).toLocaleString()
-			: value;
-
 	const cardContent = (
-		<Card className={`border ${bgStyle} ${borderStyle}`}>
-			<CardHeader>
-				<CardTitle>{metric.name}</CardTitle>
+		<Card
+			className={`border h-full flex flex-col justify-between transition-colors ${bgStyle} ${borderStyle}`}
+		>
+			<CardHeader className="pb-2">
+				<CardTitle className="text-sm font-medium text-muted-foreground">
+					{metric.name}
+				</CardTitle>
 				{description && (
-					<CardDescription className="text-muted-foreground">
+					<CardDescription className="text-xs font-semibold mt-1">
 						{description}
 					</CardDescription>
 				)}
-				<CardDescription className="text-2xl font-bold text-primary-foreground">
-					{formattedValue}
-				</CardDescription>
 			</CardHeader>
+			<CardContent>
+				<div className="text-2xl font-bold tracking-tight text-foreground">
+					{formattedValue}
+				</div>
+				{/* If it's a rate, show the raw counts as a subtitle */}
+				{value?.dataType === "rate" && (
+					<p className="text-xs text-muted-foreground mt-1">
+						{value.count} / {value.outOf} attempts
+					</p>
+				)}
+			</CardContent>
 		</Card>
 	);
 

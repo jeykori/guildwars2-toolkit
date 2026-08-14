@@ -1,3 +1,25 @@
+export type ScalarMetricValue = {
+	dataType: "scalar";
+	value: number;
+};
+
+export type MatrixMetricValue = {
+	dataType: "matrix";
+	/** e.g., { "Red Flower": 2, "Blue Flower": 1 } */
+	values: Record<string, number>;
+};
+
+export type RateMetricValue = {
+	dataType: "rate";
+	count: number;
+	outOf: number;
+};
+
+export type MetricValue =
+	| ScalarMetricValue
+	| MatrixMetricValue
+	| RateMetricValue;
+
 export type ThresholdColor =
 	| "green"
 	| "yellow"
@@ -41,13 +63,23 @@ export type PlayerTableMetric = CustomMetricBase & {
 	displayType: "PLAYER_TABLE";
 	description?: string;
 	aggregation: "SUM" | "AVG" | "MAX" | "MIN";
+	/**
+	 * If provided, the UI expects `player.customMetrics[id]` to be a `Record<string, number>`.
+	 * e.g., { "Flower A": 2, "Flower B": 1 }
+	 */
+	subColumns?: { key: string; label: string }[];
+	/** Whether to append a "Total" column at the end of the subColumns */
+	showTotal?: boolean;
 };
 
 export type GraphMetric = CustomMetricBase & {
 	displayType: "GRAPH";
 	description?: string;
-	// Graphs visualize data across time/logs, so they don't squash data into a single aggregated number.
-	// We omit `aggregation` here because the UI will read directly from the array of logs.
+	/**
+	 * "ABSOLUTE": Graphs the raw total per log (e.g., 5 fails).
+	 * "RATE": Graphs a percentage per log. Requires the backend to provide data as `{ count: number, outOf: number }`
+	 */
+	mode: "ABSOLUTE" | "RATE";
 };
 
 export type CustomMetricDefinition =

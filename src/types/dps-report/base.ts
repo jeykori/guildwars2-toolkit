@@ -1,3 +1,5 @@
+import type { MetricValue } from "./custom-metrics";
+
 export type MechanicSeverityGroup =
 	| "critical"
 	| "high"
@@ -26,7 +28,7 @@ export type LogPhase = {
 	/** Key: Target index */
 	targetPriorities: Record<number, TargetPriority>;
 	/** Key: Custom metric ID */
-	customMetrics: Record<string, number>;
+	customMetrics: Record<string, MetricValue>;
 };
 
 export type TargetDamageStats = {
@@ -48,5 +50,5 @@ export type PlayerPhaseStats = {
 	/** Key: Target index */
 	targets: Record<number, TargetDamageStats>;
 	/** Key: Custom metric ID */
-	customMetrics: Record<string, number>;
+	customMetrics: Record<string, MetricValue>;
 };

@@ -11,6 +11,7 @@ import type {
 	DpsReportSummary,
 	LogPhase,
 	LogSummary,
+	MetricValue,
 	TargetPriority,
 } from "../../../types";
 import {
@@ -41,7 +42,7 @@ export interface UseReportAggregatorResult {
 	filteredLogs: LogSummary[];
 	aggregatedPlayers: AggregatedPlayer[];
 	activeMetricsDictionary: CustomMetricDefinition[];
-	aggregatedSquadMetrics: Record<string, number>;
+	aggregatedSquadMetrics: Record<string, MetricValue>;
 }
 
 export function useReportAggregator(

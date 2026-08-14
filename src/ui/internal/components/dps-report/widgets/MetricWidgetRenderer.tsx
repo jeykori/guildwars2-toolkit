@@ -2,6 +2,7 @@ import type {
 	AggregatedPlayer,
 	CustomMetricDefinition,
 	LogSummary,
+	MetricValue,
 } from "../../../../../types";
 import { GraphMetricWidget } from "./GraphMetricWidget";
 import { PlayerTableMetricWidget } from "./PlayerTableMetricWidget";
@@ -9,7 +10,7 @@ import { ScalarMetricWidget } from "./ScalarMetricWidget";
 
 interface MetricWidgetRendererProps {
 	metric: CustomMetricDefinition;
-	aggregatedSquadMetrics: Record<string, number>;
+	aggregatedSquadMetrics: Record<string, MetricValue>;
 	aggregatedPlayers: AggregatedPlayer[];
 	filteredLogs: LogSummary[];
 }
@@ -25,7 +26,12 @@ export function MetricWidgetRenderer({
 			return (
 				<ScalarMetricWidget
 					metric={metric}
-					value={aggregatedSquadMetrics[metric.id] ?? 0}
+					value={
+						aggregatedSquadMetrics[metric.id] ?? {
+							dataType: "scalar",
+							value: 0,
+						}
+					}
 					filteredLogs={filteredLogs}
 				/>
 			);

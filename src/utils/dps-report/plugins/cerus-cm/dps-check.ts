@@ -3,6 +3,8 @@ import type { mapDpsReport } from "../../mapper";
 
 type TMappedReport = ReturnType<typeof mapDpsReport>;
 
+const ID = "25989.cerus-cm.dps-check";
+
 const thresholds = {
 	cm: {
 		latePhase: 165000,
@@ -48,7 +50,7 @@ const generateThresholds = (type: "cm" | "lcm"): ThresholdStep[] => {
 };
 
 export const dpsCheckMetric: CustomMetricDefinition = {
-	id: "25989_cerus_cm_50-10_dps",
+	id: ID,
 	name: "Phase 3 DPS",
 	aggregation: "AVG",
 	displayType: "SCALAR",
@@ -62,8 +64,6 @@ export const dpsCheckMetric: CustomMetricDefinition = {
 };
 
 export const parseDpsCheckMetric = (mapped: TMappedReport) => {
-	mapped.customMetrics = mapped.customMetrics || {};
-
 	// 1. Find the target phase index ("50%-10%" or "Phase 3" as fallback)
 	let targetPhaseIndex = mapped.phases.findIndex((p) => p.name === "50%-10%");
 	if (targetPhaseIndex === -1) {
@@ -103,7 +103,10 @@ export const parseDpsCheckMetric = (mapped: TMappedReport) => {
 		const durationSec = (targetPhase.end - targetPhase.start) / 1000;
 		const squadDps = durationSec > 0 ? totalDamage / durationSec : 0;
 
-		mapped.customMetrics["25989_cerus_cm_50-10_dps"] = squadDps;
+		mapped.customMetrics[ID] = {
+			dataType: "scalar",
+			value: squadDps,
+		};
 	}
 
 	return mapped;

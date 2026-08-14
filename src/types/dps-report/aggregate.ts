@@ -1,3 +1,5 @@
+import type { MetricValue } from "./custom-metrics";
+
 export type AggregatedPlayer = {
 	account: string;
 	/** Most used character name */
@@ -29,10 +31,5 @@ export type AggregatedPlayer = {
 		damageTaken: number;
 		mechanics: Record<number, number>;
 	};
-	/**
-	 * Resolved custom metrics.
-	 * The meaning of the value (Total, Average, Max) is dictated by
-	 * the metric's AggregationRule in the dictionary.
-	 */
-	customMetrics: Record<string, number>;
+	customMetrics: Record<string, MetricValue>;
 };
