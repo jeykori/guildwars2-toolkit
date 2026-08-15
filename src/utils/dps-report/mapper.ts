@@ -23,7 +23,7 @@ type TMappedReport = Omit<LogData<any>, "id">;
 
 export const mapDpsReport = (
 	report: DpsReportJson,
-	combatReplay?: CombatReplayJson,
+	combatReplay?: CombatReplayJson | null,
 ): TMappedReport => {
 	const mechanicsDictionary: MechanicDictionaryItem[] = [];
 	const mechanicNameToIdMap = new Map<string, number>();

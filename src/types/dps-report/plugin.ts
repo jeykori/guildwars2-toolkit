@@ -19,7 +19,7 @@ export interface EncounterPlugin<TDetails = unknown, TAggregated = unknown> {
 	/** Mutates or returns the mapped report with extracted custom metrics */
 	parseLog: (
 		report: DpsReportJson,
-		combatReplay: CombatReplayJson | undefined,
+		combatReplay: CombatReplayJson | null | undefined,
 		mapped: TMappedReport<TDetails>,
 	) => TMappedReport<TDetails>;
 
