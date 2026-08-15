@@ -31,14 +31,14 @@ If you only need the data processing utilities, no further setup is required.
 ```typescript
 import { DpsReport } from "@jeykori/guildwars2-toolkit/utils";
 
-// Example: Map and assemble
-const mapped = DpsReport.mapDpsReport(rawJson);
+// Example: Map and assemble (combatReplayJson is optional)
+const mapped = DpsReport.mapDpsReport(dpsReportJson, combatReplayJson);
 const assembled = DpsReport.assembleReports([mapped]);
 ```
 
 ### Frontend (UI Components)
 
-The UI components rely on your application's Tailwind CSS and shadcn/ui installation.
+The UI components rely on your application's Tailwind CSS, shadcn/ui installation, and Recharts.
 
 **1. Configure Tailwind**
 Tell your Tailwind compiler to scan the toolkit for utility classes by adding this to your main `index.css` or `globals.css`:
@@ -48,11 +48,12 @@ Tell your Tailwind compiler to scan the toolkit for utility classes by adding th
 @source "../node_modules/@jeykori/guildwars2-toolkit/dist/ui";
 ```
 
-**2. Install Required Components**
-Install the necessary components into your project using the shadcn CLI:
+**2. Install Required Dependencies & Components**
+Install Recharts and the necessary components into your project using the shadcn CLI:
 
 ```bash
-npx shadcn@latest add badge button card checkbox label separator slider table tabs toggle tooltip field
+bun add recharts
+npx shadcn@latest add badge button card chart checkbox field label select separator slider table tabs toggle tooltip
 
 ```
 
@@ -60,12 +61,15 @@ npx shadcn@latest add badge button card checkbox label separator slider table ta
 Create a barrel file (e.g., `src/components/shadcn.ts`) to export all required components as a single object:
 
 ```typescript
+export * as recharts from "recharts";
 export * from "./ui/badge";
 export * from "./ui/button";
 export * from "./ui/card";
+export * from "./ui/chart";
 export * from "./ui/checkbox";
 export * from "./ui/field";
 export * from "./ui/label";
+export * from "./ui/select";
 export * from "./ui/separator";
 export * from "./ui/slider";
 export * from "./ui/table";
@@ -84,9 +88,11 @@ import {
 	DpsReportSummaryLayout,
 } from "@jeykori/guildwars2-toolkit/ui";
 
+const shadcnComponents = shadcn as ToolkitComponents;
+
 export function App({ data }) {
 	return (
-		<ToolkitProvider components={shadcn}>
+		<ToolkitProvider components={shadcnComponents}>
 			<DpsReportSummaryLayout data={data} />
 		</ToolkitProvider>
 	);
