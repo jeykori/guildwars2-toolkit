@@ -1,11 +1,11 @@
 import type {
-	CustomMetricDefinition,
+	AssembledMetricDefinition,
 	DpsReportSummary,
 	LogData,
 	MechanicDictionaryItem,
 	PlayerSummary,
 } from "../../types/dps-report";
-import { getPluginsForTriggers } from "./plugins";
+import { ENCOUNTER_PLUGINS } from "./plugins";
 
 export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 	let successCount = 0;
@@ -18,29 +18,26 @@ export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 	const nameToMasterId = new Map<string, number>();
 
 	const uniqueTriggerIds = new Set(logs.map((l) => l.triggerId));
-	const activePlugins = getPluginsForTriggers(Array.from(uniqueTriggerIds));
-	const dictionaryMap = new Map<string, CustomMetricDefinition>();
-	activePlugins.forEach((plugin) => {
-		plugin.dictionary.forEach((metric) => {
-			const resolvedTriggerIds = metric.isGlobal
-				? []
-				: (metric.triggerIds ?? plugin.triggerIds);
+	const dictionaryMap = new Map<string, AssembledMetricDefinition>();
 
-			if (dictionaryMap.has(metric.id)) {
-				const existing = dictionaryMap.get(metric.id);
-				if (existing && !existing.isGlobal) {
-					existing.triggerIds = Array.from(
-						new Set([...(existing.triggerIds || []), ...resolvedTriggerIds]),
-					);
-				}
-			} else {
+	for (const triggerId of uniqueTriggerIds) {
+		const plugin =
+			ENCOUNTER_PLUGINS[triggerId as keyof typeof ENCOUNTER_PLUGINS];
+		if (!plugin) continue;
+
+		plugin.dictionary.forEach((metric) => {
+			// Inherit single trigger ID
+			const resolvedTriggerId = metric.triggerId ?? plugin.triggerId;
+
+			if (!dictionaryMap.has(metric.id)) {
 				dictionaryMap.set(metric.id, {
 					...metric,
-					triggerIds: resolvedTriggerIds,
-				});
+					triggerId: resolvedTriggerId,
+				} as AssembledMetricDefinition);
 			}
 		});
-	});
+	}
+
 	const combinedDictionary = Array.from(dictionaryMap.values());
 
 	const playerMap = new Map<string, PlayerSummary>();
@@ -81,7 +78,8 @@ export const assembleReports = (logs: LogData[]): DpsReportSummary => {
 			maxHealthPercentBurned: log.maxHealthPercentBurned,
 			targets: log.targets,
 			phases: log.phases,
-			customMetrics: log.customMetrics,
+			customSummaryMetrics: log.customSummaryMetrics,
+			encounterDetails: log.encounterDetails,
 		});
 
 		// 1. Map local mechanic IDs to global master IDs for this assembly

@@ -6,18 +6,25 @@ import type {
 	TargetDamageStats,
 	TargetPriority,
 } from "../../types/dps-report";
-import type { DpsReportJson } from "../../types/dps-report/elite-insights";
+import type {
+	CombatReplayJson,
+	DpsReportJson,
+} from "../../types/dps-report/elite-insights";
 import {
 	BUFF_IDS,
 	IGNORED_MECHANICS,
 	PHASE_TYPE_MAP,
 	SEVERITY_MAP,
 } from "./constants";
-import { getPluginsForTriggers } from "./plugins";
+import { ENCOUNTER_PLUGINS } from "./plugins";
 
-type TMappedReport = Omit<LogData, "id">;
+// biome-ignore lint/suspicious/noExplicitAny: this is the generic mapper
+type TMappedReport = Omit<LogData<any>, "id">;
 
-export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
+export const mapDpsReport = (
+	report: DpsReportJson,
+	combatReplay: CombatReplayJson,
+): TMappedReport => {
 	const mechanicsDictionary: MechanicDictionaryItem[] = [];
 	const mechanicNameToIdMap = new Map<string, number>();
 
@@ -93,7 +100,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 			start: p.start,
 			end: p.end,
 			targetPriorities: mappedTargetPriorities,
-			customMetrics: {},
+			customSummaryMetrics: {},
 		};
 	});
 
@@ -178,7 +185,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 			(b) => b.id === BUFF_IDS.ALACRITY,
 		);
 
-		for (const [phaseIdx, _phase] of report.phases.entries()) {
+		for (const [phaseIdx, phase] of report.phases.entries()) {
 			const targetStats: Record<number, TargetDamageStats> = {};
 
 			for (const [tIndex, target] of report.targets.entries()) {
@@ -202,6 +209,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 				mechanicsLogTimeline[p.account]?.[phaseIdx] || {};
 
 			playerStats.phases.push({
+				phaseName: phase.name,
 				quickness,
 				alacrity,
 				damageTaken: p.defenses?.[phaseIdx]?.damageTaken ?? 0,
@@ -210,7 +218,7 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 				resDuration: p.support?.[phaseIdx]?.resurrectTime ?? 0,
 				mechanics: mechanicsForPhase,
 				targets: targetStats,
-				customMetrics: {},
+				customSummaryMetrics: {},
 			});
 		}
 
@@ -236,18 +244,18 @@ export const mapDpsReport = (report: DpsReportJson): TMappedReport => {
 		phases,
 		mechanicsDictionary,
 		players,
-		customMetrics: {},
+		customSummaryMetrics: {},
+		encounterDetails: {},
 	};
 
 	// ============================================================================
 	// 7. Apply Encounter-Specific Plugins
 	// ============================================================================
-	const activePlugins = getPluginsForTriggers([mappedReport.triggerId]);
+	const plugin =
+		ENCOUNTER_PLUGINS[mappedReport.triggerId as keyof typeof ENCOUNTER_PLUGINS];
 
-	for (const plugin of activePlugins) {
-		if (plugin.parseLog) {
-			mappedReport = plugin.parseLog(report, mappedReport);
-		}
+	if (plugin) {
+		mappedReport = plugin.parseLog(report, combatReplay, mappedReport);
 	}
 
 	return mappedReport;

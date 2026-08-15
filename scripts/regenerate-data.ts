@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { getDpsReportJson } from "../playground/src/api";
+import { getCombatReplayJson, getDpsReportJson } from "../playground/src/api";
 import { mapDpsReport } from "../src/utils/dps-report";
 
 // Define your sessions as a map of FolderName -> Array of Report IDs
@@ -43,9 +43,10 @@ async function main() {
 
 				// Fetch raw data
 				const rawJson = await getDpsReportJson(link);
+				const rawCrJson = await getCombatReplayJson(link);
 
 				// Map data
-				const mappedData = mapDpsReport(rawJson);
+				const mappedData = mapDpsReport(rawJson, rawCrJson);
 
 				// Save as formatted JSON using Bun's native write
 				await Bun.write(

@@ -4,7 +4,8 @@ import type {
 	LogSummary,
 	MetricValue,
 } from "../../../../types";
-import { MetricWidgetRenderer } from "./widgets/MetricWidgetRenderer";
+import { ScalarMetricWidget } from "./widgets/ScalarMetricWidget";
+import { TopPlayersMetricWidget } from "./widgets/TopPlayersMetricsWidget";
 
 interface EncounterSummaryWidgetsProps {
 	metrics: CustomMetricDefinition[];
@@ -35,15 +36,34 @@ export function EncounterSummaryWidgets({
 
 			{/* Metrics Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-				{metrics.map((metric) => (
-					<MetricWidgetRenderer
-						key={metric.id}
-						metric={metric}
-						aggregatedSquadMetrics={aggregatedSquadMetrics}
-						aggregatedPlayers={aggregatedPlayers}
-						filteredLogs={filteredLogs}
-					/>
-				))}
+				{metrics.map((metric) => {
+					switch (metric.displayType) {
+						case "SCALAR":
+							return (
+								<ScalarMetricWidget
+									key={metric.id}
+									metric={metric}
+									value={
+										aggregatedSquadMetrics[metric.id] ?? {
+											dataType: "scalar",
+											value: -1, // shouldn't happen
+										}
+									}
+									filteredLogs={filteredLogs}
+								/>
+							);
+						case "TOP_PLAYERS":
+							return (
+								<TopPlayersMetricWidget
+									key={metric.id}
+									metric={metric}
+									aggregatedPlayers={aggregatedPlayers}
+								/>
+							);
+						default:
+							return null;
+					}
+				})}
 			</div>
 		</div>
 	);

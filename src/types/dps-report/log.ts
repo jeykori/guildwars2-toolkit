@@ -14,7 +14,7 @@ export type LogPlayerStats = {
 	phases: PlayerPhaseStats[];
 };
 
-export type LogData = {
+export type LogData<TBespokeDetails = unknown> = {
 	id: string;
 	triggerId: number;
 	recordedBy: string;
@@ -40,5 +40,7 @@ export type LogData = {
 	mechanicsDictionary: MechanicDictionaryItem[];
 	players: LogPlayerStats[];
 	/** Log-level custom metrics (e.g. squad DPS from 10%, enrage time left) */
-	customMetrics: Record<string, MetricValue>;
+	customSummaryMetrics: Record<string, MetricValue>;
+	/** Bespoke unstructured data for custom React detail component */
+	encounterDetails?: TBespokeDetails;
 };

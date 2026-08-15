@@ -2,13 +2,13 @@ import { DpsReport } from "@jeykori/guildwars2-toolkit/utils";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import useSWR from "swr";
-import { getDpsReportJson } from "@/api";
+import { getCombatReplayJson, getDpsReportJson } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function DpsReportPage() {
 	const [searchParams] = useSearchParams();
-	// Expects URL like: /reports?ids=id1,id2,id3
+	// Expects URL like: /parse-dps-report?ids=id1,id2,id3
 	const idsParam = searchParams.get("ids") || "";
 	const reportIds = useMemo(
 		() => idsParam.split(",").filter(Boolean),
@@ -22,7 +22,15 @@ export function DpsReportPage() {
 		isLoading,
 	} = useSWR(
 		reportIds.length > 0 ? ["dps-reports-multi", reportIds] : null,
-		async ([, ids]) => Promise.all(ids.map((id) => getDpsReportJson(id))),
+		async ([, ids]) =>
+			Promise.all(
+				ids.map(async (id) => {
+					return {
+						dpsReportJson: await getDpsReportJson(id),
+						combartReplayJson: await getCombatReplayJson(id),
+					};
+				}),
+			),
 	);
 
 	const { mappedReports, assembledReport } = useMemo(() => {
@@ -33,7 +41,7 @@ export function DpsReportPage() {
 		// 1. Array of mapDpsReport outputs
 		const mapped = rawJsons.map((raw, index) => ({
 			id: reportIds[index],
-			...DpsReport.mapDpsReport(raw),
+			...DpsReport.mapDpsReport(raw.dpsReportJson, raw.combartReplayJson),
 		}));
 
 		// 2. Assembled report output

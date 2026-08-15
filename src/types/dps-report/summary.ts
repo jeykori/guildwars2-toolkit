@@ -1,5 +1,5 @@
 import type { MechanicDictionaryItem } from "./base";
-import type { CustomMetricDefinition } from "./custom-metrics";
+import type { AssembledMetricDefinition } from "./custom-metrics";
 import type { LogData, LogPlayerStats } from "./log";
 
 export type LogSummary = Omit<
@@ -31,7 +31,7 @@ export type DpsReportSummary = {
 	};
 	/** Global dictionary mapping for all mechanics in this report */
 	mechanicsDictionary: MechanicDictionaryItem[];
-	customMetricsDictionary: CustomMetricDefinition[];
+	customMetricsDictionary: AssembledMetricDefinition[];
 	logs: LogSummary[];
 	players: PlayerSummary[];
 };

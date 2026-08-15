@@ -40,8 +40,6 @@ export function ScalarMetricWidget({
 		const percent = value.outOf > 0 ? (value.count / value.outOf) * 100 : 0;
 		numericValue = percent;
 		formattedValue = `${(Math.round(percent * 10) / 10).toLocaleString()}%`;
-	} else if (value?.dataType === "matrix") {
-		formattedValue = "Unsupported Format";
 	}
 
 	// 2. Evaluate threshold using the extracted numeric value
@@ -78,29 +76,25 @@ export function ScalarMetricWidget({
 	}
 
 	const cardContent = (
-		<Card
-			className={`border h-full flex flex-col justify-between transition-colors ${bgStyle} ${borderStyle}`}
-		>
-			<CardHeader className="pb-2">
-				<CardTitle className="text-sm font-medium text-muted-foreground">
-					{metric.name}
-				</CardTitle>
+		<Card className={`h-full border ${bgStyle} ${borderStyle}`} size="sm">
+			<CardHeader>
+				<CardTitle>{metric.name}</CardTitle>
 				{description && (
-					<CardDescription className="text-xs font-semibold mt-1">
+					<CardDescription className="text-muted-foreground">
 						{description}
 					</CardDescription>
 				)}
 			</CardHeader>
 			<CardContent>
-				<div className="text-2xl font-bold tracking-tight text-foreground">
-					{formattedValue}
-				</div>
-				{/* If it's a rate, show the raw counts as a subtitle */}
-				{value?.dataType === "rate" && (
-					<p className="text-xs text-muted-foreground mt-1">
-						{value.count} / {value.outOf} attempts
-					</p>
-				)}
+				<CardDescription className="text-2xl font-bold text-primary-foreground">
+					<div>{formattedValue}</div>
+					{/* If it's a rate, show the raw counts as a subtitle */}
+					{value?.dataType === "rate" && (
+						<p className="text-xs text-muted-foreground mt-1">
+							{value.count} / {value.outOf} attempts
+						</p>
+					)}
+				</CardDescription>
 			</CardContent>
 		</Card>
 	);
@@ -108,8 +102,9 @@ export function ScalarMetricWidget({
 	if (tooltip) {
 		return (
 			<Tooltip>
-				<TooltipTrigger className="text-left cursor-help w-full">
-					<div>{cardContent}</div>
+				{/* 2. Add h-full to the trigger, AND the wrapping div */}
+				<TooltipTrigger className="text-left cursor-help w-full h-full block">
+					<div className="h-full w-full">{cardContent}</div>
 				</TooltipTrigger>
 				<TooltipContent>{tooltip}</TooltipContent>
 			</Tooltip>

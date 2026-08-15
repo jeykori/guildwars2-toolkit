@@ -16,10 +16,6 @@ export type MechanicDictionaryItem = {
 	description: string;
 };
 
-// ----------------------------------------------------------------------------
-// SHARED BASE TYPES
-// ----------------------------------------------------------------------------
-
 export type LogPhase = {
 	type: "encounter" | "instance" | "subphase" | "timeframe";
 	name: string;
@@ -28,7 +24,7 @@ export type LogPhase = {
 	/** Key: Target index */
 	targetPriorities: Record<number, TargetPriority>;
 	/** Key: Custom metric ID */
-	customMetrics: Record<string, MetricValue>;
+	customSummaryMetrics: Record<string, MetricValue>;
 };
 
 export type TargetDamageStats = {
@@ -39,6 +35,7 @@ export type TargetDamageStats = {
 };
 
 export type PlayerPhaseStats = {
+	phaseName: string;
 	quickness: number;
 	alacrity: number;
 	damageTaken: number;
@@ -50,5 +47,5 @@ export type PlayerPhaseStats = {
 	/** Key: Target index */
 	targets: Record<number, TargetDamageStats>;
 	/** Key: Custom metric ID */
-	customMetrics: Record<string, MetricValue>;
+	customSummaryMetrics: Record<string, MetricValue>;
 };

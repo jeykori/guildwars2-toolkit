@@ -9,18 +9,20 @@ import type {
 	AggregatedPlayer,
 	CustomMetricDefinition,
 	DpsReportSummary,
+	EncounterDetailStates,
 	LogPhase,
 	LogSummary,
 	MetricValue,
 	TargetPriority,
 } from "../../../types";
 import {
+	aggregateEncounterDetails,
 	aggregatePlayerData,
 	aggregateSquadData,
 	getActiveMetricsDictionary,
 } from "../../../utils/dps-report";
 
-export interface UseReportAggregatorResult {
+export type UseReportAggregatorResult = {
 	maxHpLeft: number;
 	setMaxHpLeft: Dispatch<SetStateAction<number>>;
 	excludedLogIds: Set<string>;
@@ -43,7 +45,8 @@ export interface UseReportAggregatorResult {
 	aggregatedPlayers: AggregatedPlayer[];
 	activeMetricsDictionary: CustomMetricDefinition[];
 	aggregatedSquadMetrics: Record<string, MetricValue>;
-}
+	encounterState: EncounterDetailStates;
+};
 
 export function useReportAggregator(
 	data: DpsReportSummary | undefined,
@@ -233,6 +236,30 @@ export function useReportAggregator(
 		activeMetricsDictionary,
 	]);
 
+	// 1. We already have the activeTriggerId safely extracted!
+	const activeTriggerId = useMemo(() => {
+		const firstLog = filteredLogs[0];
+		if (!firstLog) return null;
+
+		const isSingleEncounter = filteredLogs.every(
+			(l) =>
+				l.triggerId === firstLog.triggerId &&
+				!!l.isCM === !!firstLog.isCM &&
+				!!l.isLegendaryCM === !!firstLog.isLegendaryCM,
+		);
+
+		return isSingleEncounter ? firstLog.triggerId : null;
+	}, [filteredLogs]);
+
+	const encounterState = useMemo(() => {
+		return aggregateEncounterDetails(
+			activeTriggerId,
+			aggregatedPlayers,
+			filteredLogs,
+			selectedPhaseNames,
+		);
+	}, [activeTriggerId, aggregatedPlayers, filteredLogs, selectedPhaseNames]);
+
 	return {
 		maxHpLeft,
 		setMaxHpLeft,
@@ -248,5 +275,6 @@ export function useReportAggregator(
 		aggregatedPlayers,
 		activeMetricsDictionary,
 		aggregatedSquadMetrics,
+		encounterState,
 	};
 }

@@ -1,8 +1,21 @@
 import type {
+	CombatReplayJson,
 	DpsReportJson,
 	DpsReportSummary,
+	LogData,
 } from "@jeykori/guildwars2-toolkit/types";
 import { DpsReport } from "@jeykori/guildwars2-toolkit/utils";
+
+function extractData<T extends object>(varName: string, htmlText: string) {
+	const searchString = `const ${varName} = `;
+	const start = htmlText.indexOf(searchString) + searchString.length;
+	if (start < searchString.length) return null;
+
+	// Find the end of the line, then step backward to the closing "';"
+	const end = htmlText.lastIndexOf(";", htmlText.indexOf("\n", start));
+
+	return JSON.parse(htmlText.slice(start, end)) as T;
+}
 
 async function fetchJson<T>(
 	endpoint: string,
@@ -41,7 +54,16 @@ export async function getDpsReportSummary(
 		return DpsReport.assembleReports(reports);
 	}
 
-	throw new Error("Invalid ID");
+	return DpsReport.assembleReports([await getLogData(reportId)]);
+}
+
+export async function getLogData(reportId: string): Promise<LogData> {
+	const dpsReportJson = await getDpsReportJson(reportId);
+	const combatReplayJson = await getCombatReplayJson(reportId);
+
+	const mapped = DpsReport.mapDpsReport(dpsReportJson, combatReplayJson);
+
+	return { id: reportId, ...mapped };
 }
 
 export async function getDpsReportJson(
@@ -55,4 +77,24 @@ export async function getDpsReportJson(
 	return fetchJson<DpsReportJson>(
 		`https://dps.report/getJson?permalink=${reportId}`,
 	);
+}
+
+export async function getCombatReplayJson(
+	reportId: string,
+): Promise<CombatReplayJson> {
+	if (reportId === "cerus") {
+		const res = await fetch("/data/dps-report/cerus.cr.json");
+		return res.json();
+	}
+	const htmlText = await fetch(`https://dps.report/${reportId}`).then((res) =>
+		res.text(),
+	);
+
+	const crData = extractData<CombatReplayJson>("_crData", htmlText);
+
+	if (!crData) {
+		throw new Error("Failed to extract _crData from HTML");
+	}
+
+	return crData;
 }

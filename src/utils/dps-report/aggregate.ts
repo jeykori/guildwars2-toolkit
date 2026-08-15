@@ -1,16 +1,19 @@
 import type {
 	AggregatedPlayer,
+	AssembledMetricDefinition,
 	CustomMetricDefinition,
 	DpsReportSummary,
+	EncounterDetailStates,
 	LogPhase,
 	LogSummary,
-	MatrixMetricValue,
 	MetricValue,
 	PlayerSummary,
+	PluginsMap,
 	RateMetricValue,
 	ScalarMetricValue,
 	TargetDamageStats,
 } from "../../types";
+import { ENCOUNTER_PLUGINS } from "./plugins";
 
 export interface AggregationFilters {
 	validLogIds: Set<string>;
@@ -20,25 +23,20 @@ export interface AggregationFilters {
 }
 
 export function getActiveMetricsDictionary(
-	dictionary: CustomMetricDefinition[] | undefined,
+	dictionary: AssembledMetricDefinition[] | undefined,
 	logs: LogSummary[],
-): CustomMetricDefinition[] {
+): AssembledMetricDefinition[] {
 	if (!dictionary || logs.length === 0) return [];
 
+	// Get unique trigger IDs
 	const uniqueTriggerIds = new Set(logs.map((l) => l.triggerId));
-	const isSingleEncounter = uniqueTriggerIds.size === 1;
-	const activeTriggerId = isSingleEncounter
-		? Array.from(uniqueTriggerIds)[0]
-		: null;
 
-	return dictionary.filter((metric) => {
-		if (metric.isGlobal) return true;
+	// If we are looking at multiple different bosses, we don't show custom metrics
+	if (uniqueTriggerIds.size !== 1) return [];
 
-		return (
-			isSingleEncounter &&
-			metric.triggerIds?.includes(activeTriggerId as number)
-		);
-	});
+	const activeId = Array.from(uniqueTriggerIds)[0];
+
+	return dictionary.filter((metric) => metric.triggerId === activeId);
 }
 
 // ----------------------------------------------------------------------------
@@ -51,12 +49,6 @@ export function applyAggregationRules(
 ): MetricValue | null {
 	if (dataToAggregate.length === 0) return null;
 
-	// 1. Tell TypeScript we do not squash GRAPH data into a single value.
-	// This narrows metricDef to (ScalarMetric | PlayerTableMetric) for the rest of the function!
-	if (metricDef.displayType === "GRAPH") {
-		return null;
-	}
-
 	const dataType = dataToAggregate[0]?.dataType;
 
 	switch (dataType) {
@@ -68,7 +60,7 @@ export function applyAggregationRules(
 			const vals = scalarVals.map((m) => m.value);
 			let aggregatedValue = 0;
 
-			// 2. No more TS errors! It knows aggregation exists here.
+			// Both ScalarMetric and TopPlayersMetric guarantee an `aggregation` field
 			if (metricDef.aggregation === "SUM") {
 				aggregatedValue = vals.reduce((a, b) => a + b, 0);
 			} else if (metricDef.aggregation === "AVG") {
@@ -80,23 +72,6 @@ export function applyAggregationRules(
 			}
 
 			return { dataType: "scalar", value: aggregatedValue };
-		}
-
-		case "matrix": {
-			const matrixVals = dataToAggregate.filter(
-				(m): m is MatrixMetricValue => m.dataType === "matrix",
-			);
-
-			const aggregatedValues: Record<string, number> = {};
-
-			for (const m of matrixVals) {
-				for (const [key, val] of Object.entries(m.values)) {
-					// If you eventually want AVG for tables, you'd apply metricDef.aggregation here too!
-					// For now, defaulting to SUM is standard for table matrices.
-					aggregatedValues[key] = (aggregatedValues[key] || 0) + val;
-				}
-			}
-			return { dataType: "matrix", values: aggregatedValues };
 		}
 
 		case "rate": {
@@ -115,7 +90,6 @@ export function applyAggregationRules(
 	}
 }
 
-// NEW HELPER: Maps over a collected dictionary of MetricValues and applies the rules
 function aggregateMetricsRecord(
 	collectedData: Record<string, MetricValue[]>,
 	dictionary: CustomMetricDefinition[],
@@ -202,7 +176,7 @@ function formatCharactersAndProfessions(
 
 function processPlayerLogs(
 	player: PlayerSummary,
-	allLogs: LogSummary[], // Replace with `LogData[]` if your summary object uses the full log type
+	allLogs: LogSummary[],
 	filters: AggregationFilters,
 ) {
 	const stats = {
@@ -217,8 +191,7 @@ function processPlayerLogs(
 		totalResDuration: 0,
 		totalDamageTaken: 0,
 		totalMechanics: {} as Record<number, number>,
-		// UPDATED: Now stores an array of the discriminated union MetricValue
-		customMetricsData: {} as Record<string, MetricValue[]>,
+		customSummaryMetricsData: {} as Record<string, MetricValue[]>,
 		targetDamage: 0,
 		cleaveDamage: 0,
 		weightedQuickness: 0,
@@ -254,20 +227,19 @@ function processPlayerLogs(
 			stats.weightedQuickness += pPhase.quickness * duration;
 			stats.weightedAlacrity += pPhase.alacrity * duration;
 
-			// Accumulate standard mechanics
 			Object.entries(pPhase.mechanics).forEach(([id, count]) => {
 				const numId = Number(id);
 				stats.totalMechanics[numId] =
 					(stats.totalMechanics[numId] || 0) + count;
 			});
 
-			// Accumulate custom metrics (MetricValues)
-			Object.entries(pPhase.customMetrics || {}).forEach(([id, val]) => {
-				if (!stats.customMetricsData[id]) stats.customMetricsData[id] = [];
-				stats.customMetricsData[id].push(val);
+			// We only care about customSummaryMetrics here (scalar and rate data)
+			Object.entries(pPhase.customSummaryMetrics || {}).forEach(([id, val]) => {
+				if (!stats.customSummaryMetricsData[id])
+					stats.customSummaryMetricsData[id] = [];
+				stats.customSummaryMetricsData[id].push(val);
 			});
 
-			// Calculate and accumulate target/cleave damage
 			const dmg = calculatePhaseDamage(
 				pPhase.targets,
 				phaseData,
@@ -299,34 +271,33 @@ function processPlayerLogs(
 // ----------------------------------------------------------------------------
 // EXPORTED AGGREGATOR
 // ----------------------------------------------------------------------------
+
 export function aggregateSquadData(
 	logs: LogSummary[],
 	selectedPhaseNames: Set<string>,
 	activeDictionary: CustomMetricDefinition[],
 ): Record<string, MetricValue> {
-	// UPDATED RETURN TYPE
-	const customMetricsData: Record<string, MetricValue[]> = {};
+	const customSummaryMetricsData: Record<string, MetricValue[]> = {};
 
 	logs.forEach((log) => {
-		// Collect Log-level metrics
-		Object.entries(log.customMetrics || {}).forEach(([id, val]) => {
-			if (!customMetricsData[id]) customMetricsData[id] = [];
-			customMetricsData[id].push(val);
+		// Collect Log-level custom metrics
+		Object.entries(log.customSummaryMetrics || {}).forEach(([id, val]) => {
+			if (!customSummaryMetricsData[id]) customSummaryMetricsData[id] = [];
+			customSummaryMetricsData[id].push(val);
 		});
 
-		// Collect Phase-level metrics (respects UI phase selection)
+		// Collect Phase-level custom metrics
 		log.phases.forEach((phase) => {
 			if (!selectedPhaseNames.has(phase.name)) return;
 
-			Object.entries(phase.customMetrics || {}).forEach(([id, val]) => {
-				if (!customMetricsData[id]) customMetricsData[id] = [];
-				customMetricsData[id].push(val);
+			Object.entries(phase.customSummaryMetrics || {}).forEach(([id, val]) => {
+				if (!customSummaryMetricsData[id]) customSummaryMetricsData[id] = [];
+				customSummaryMetricsData[id].push(val);
 			});
 		});
 	});
 
-	// Use the new helper to process the collected arrays
-	return aggregateMetricsRecord(customMetricsData, activeDictionary);
+	return aggregateMetricsRecord(customSummaryMetricsData, activeDictionary);
 }
 
 export function aggregatePlayerData(
@@ -334,13 +305,8 @@ export function aggregatePlayerData(
 	filters: AggregationFilters,
 ): AggregatedPlayer[] {
 	return data.players.map((player) => {
-		// 1. Process all logs for this player using the helper
 		const stats = processPlayerLogs(player, data.logs, filters);
-
-		// 2. Format sorted characters and unique professions
 		const charData = formatCharactersAndProfessions(stats.activeCharacters);
-
-		// 3. Math setup
 		const durationSec = stats.totalDurationMs / 1000;
 
 		return {
@@ -378,11 +344,38 @@ export function aggregatePlayerData(
 					]),
 				),
 			},
-			// UPDATED: Process the player's custom metrics using the new helper
-			customMetrics: aggregateMetricsRecord(
-				stats.customMetricsData,
+			customSummaryMetrics: aggregateMetricsRecord(
+				stats.customSummaryMetricsData,
 				filters.activeMetricsDictionary,
 			),
 		};
 	});
+}
+
+export function aggregateEncounterDetails(
+	activeTriggerId: number | null,
+	aggregatedPlayers: AggregatedPlayer[],
+	filteredLogs: LogSummary[],
+	selectedPhaseNames: Set<string>,
+): EncounterDetailStates {
+	if (!activeTriggerId || !(activeTriggerId in ENCOUNTER_PLUGINS)) {
+		return { triggerId: null, activePlugin: null, bespokeDetails: null };
+	}
+
+	const K = activeTriggerId as keyof PluginsMap;
+	const plugin = ENCOUNTER_PLUGINS[K];
+
+	if (!plugin.aggregateDetails || aggregatedPlayers.length === 0) {
+		return { triggerId: null, activePlugin: null, bespokeDetails: null };
+	}
+
+	const details = plugin.aggregateDetails(aggregatedPlayers, filteredLogs, {
+		selectedPhaseNames,
+	});
+
+	return {
+		triggerId: K,
+		activePlugin: plugin,
+		bespokeDetails: details,
+	} as EncounterDetailStates;
 }

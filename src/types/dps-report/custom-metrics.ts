@@ -3,22 +3,13 @@ export type ScalarMetricValue = {
 	value: number;
 };
 
-export type MatrixMetricValue = {
-	dataType: "matrix";
-	/** e.g., { "Red Flower": 2, "Blue Flower": 1 } */
-	values: Record<string, number>;
-};
-
 export type RateMetricValue = {
 	dataType: "rate";
 	count: number;
 	outOf: number;
 };
 
-export type MetricValue =
-	| ScalarMetricValue
-	| MatrixMetricValue
-	| RateMetricValue;
+export type MetricValue = ScalarMetricValue | RateMetricValue;
 
 export type ThresholdColor =
 	| "green"
@@ -48,41 +39,25 @@ export type MetricThresholds = {
 type CustomMetricBase = {
 	id: string;
 	name: string;
-	placement: "SUMMARY" | "DETAIL_TAB" | "BOTH";
-	isGlobal?: boolean;
-	triggerIds?: number[];
+	aggregation: "SUM" | "AVG" | "MAX" | "MIN";
+	triggerId?: number;
 };
 
 export type ScalarMetric = CustomMetricBase & {
+	/** Aggregated Squad Metrics */
 	displayType: "SCALAR";
-	aggregation: "SUM" | "AVG" | "MAX" | "MIN";
 	thresholds?: MetricThresholds;
 };
 
-export type PlayerTableMetric = CustomMetricBase & {
-	displayType: "PLAYER_TABLE";
+export type TopPlayersMetric = CustomMetricBase & {
+	/** Aggregated Player Metrics */
+	displayType: "TOP_PLAYERS";
 	description?: string;
-	aggregation: "SUM" | "AVG" | "MAX" | "MIN";
-	/**
-	 * If provided, the UI expects `player.customMetrics[id]` to be a `Record<string, number>`.
-	 * e.g., { "Flower A": 2, "Flower B": 1 }
-	 */
-	subColumns?: { key: string; label: string }[];
-	/** Whether to append a "Total" column at the end of the subColumns */
-	showTotal?: boolean;
+	/** @default 3 */
+	limit?: number;
 };
 
-export type GraphMetric = CustomMetricBase & {
-	displayType: "GRAPH";
-	description?: string;
-	/**
-	 * "ABSOLUTE": Graphs the raw total per log (e.g., 5 fails).
-	 * "RATE": Graphs a percentage per log. Requires the backend to provide data as `{ count: number, outOf: number }`
-	 */
-	mode: "ABSOLUTE" | "RATE";
+export type CustomMetricDefinition = ScalarMetric | TopPlayersMetric;
+export type AssembledMetricDefinition = CustomMetricDefinition & {
+	triggerId: number;
 };
-
-export type CustomMetricDefinition =
-	| ScalarMetric
-	| PlayerTableMetric
-	| GraphMetric;

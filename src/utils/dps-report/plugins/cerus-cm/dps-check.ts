@@ -1,25 +1,23 @@
 import type { CustomMetricDefinition, ThresholdStep } from "../../../../types";
-import type { mapDpsReport } from "../../mapper";
+import type { CerusPlugin } from "./types";
 
-type TMappedReport = ReturnType<typeof mapDpsReport>;
+export const CERUS_CM_PLUGIN_ID = "25989.cerus-cm.dps-check";
 
-const ID = "25989.cerus-cm.dps-check";
-
-const thresholds = {
+export const CERUS_CM_THRESHOLDS = {
 	cm: {
 		latePhase: 165000,
-		secondGreen: 176000, // UNSURE
-		firstGreen: 181000,
+		secondGreen: 181000,
+		firstGreen: 213000,
 	},
 	lcm: {
 		latePhase: 203000,
-		secondGreen: 218000, // UNSURE
-		firstGreen: 223000,
+		secondGreen: 223000,
+		firstGreen: 260000,
 	},
 };
 
 const generateThresholds = (type: "cm" | "lcm"): ThresholdStep[] => {
-	const t = thresholds[type];
+	const t = CERUS_CM_THRESHOLDS[type];
 
 	return [
 		{
@@ -50,11 +48,10 @@ const generateThresholds = (type: "cm" | "lcm"): ThresholdStep[] => {
 };
 
 export const dpsCheckMetric: CustomMetricDefinition = {
-	id: ID,
+	id: CERUS_CM_PLUGIN_ID,
 	name: "Phase 3 DPS",
 	aggregation: "AVG",
 	displayType: "SCALAR",
-	placement: "BOTH",
 	thresholds: {
 		operator: "<",
 		defaultColor: "none",
@@ -63,7 +60,11 @@ export const dpsCheckMetric: CustomMetricDefinition = {
 	},
 };
 
-export const parseDpsCheckMetric = (mapped: TMappedReport) => {
+export const parseDpsCheckMetric: CerusPlugin["parseLog"] = (
+	_report,
+	_combatReplay,
+	mapped,
+) => {
 	// 1. Find the target phase index ("50%-10%" or "Phase 3" as fallback)
 	let targetPhaseIndex = mapped.phases.findIndex((p) => p.name === "50%-10%");
 	if (targetPhaseIndex === -1) {
@@ -103,7 +104,7 @@ export const parseDpsCheckMetric = (mapped: TMappedReport) => {
 		const durationSec = (targetPhase.end - targetPhase.start) / 1000;
 		const squadDps = durationSec > 0 ? totalDamage / durationSec : 0;
 
-		mapped.customMetrics[ID] = {
+		mapped.customSummaryMetrics[CERUS_CM_PLUGIN_ID] = {
 			dataType: "scalar",
 			value: squadDps,
 		};

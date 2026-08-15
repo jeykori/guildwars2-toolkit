@@ -1,9 +1,12 @@
+export * as recharts from "recharts";
 export * from "./ui/badge";
 export * from "./ui/button";
 export * from "./ui/card";
+export * from "./ui/chart";
 export * from "./ui/checkbox";
 export * from "./ui/field";
 export * from "./ui/label";
+export * from "./ui/select";
 export * from "./ui/separator";
 export * from "./ui/slider";
 export * from "./ui/table";

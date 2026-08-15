@@ -93,7 +93,7 @@ export function ReportFilters({
 								.map((log) => {
 									const hpLeft = 100 - log.maxHealthPercentBurned;
 									const bossName =
-										log.bossName || overview.fights[0]?.name || log.name;
+										log.bossName || log.name || overview.fights[0]?.name;
 									const timeStr = new Intl.DateTimeFormat(undefined, {
 										timeStyle: "short",
 									}).format(new Date(log.startTime));

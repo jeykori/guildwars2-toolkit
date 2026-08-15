@@ -21,7 +21,7 @@
 		"regen": "bun run --tsconfig-override=playground/tsconfig.app.json scripts/regenerate-data.ts",
 		"check": "bunx biome check --write .",
 		"ci": "bunx biome ci .",
-		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit"
+		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit && bunx tsc -p playground/tsconfig.app.json --noEmit"
 	},
 	"exports": {
 		"./utils": {

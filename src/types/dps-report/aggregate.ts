@@ -1,4 +1,17 @@
+import type { ENCOUNTER_PLUGINS } from "../../utils/dps-report/plugins";
 import type { MetricValue } from "./custom-metrics";
+
+export type PluginsMap = typeof ENCOUNTER_PLUGINS;
+
+export type SpecificEncounterState<K extends keyof PluginsMap> = {
+	triggerId: K;
+	activePlugin: PluginsMap[K];
+	bespokeDetails: ReturnType<PluginsMap[K]["aggregateDetails"]>;
+};
+
+export type EncounterDetailStates =
+	| { [K in keyof PluginsMap]: SpecificEncounterState<K> }[keyof PluginsMap]
+	| { triggerId: null; activePlugin: null; bespokeDetails: null };
 
 export type AggregatedPlayer = {
 	account: string;
@@ -31,5 +44,5 @@ export type AggregatedPlayer = {
 		damageTaken: number;
 		mechanics: Record<number, number>;
 	};
-	customMetrics: Record<string, MetricValue>;
+	customSummaryMetrics: Record<string, MetricValue>;
 };

@@ -1,15 +1,9 @@
 import type { EncounterPlugin } from "../../../types";
 import { cerusCmPlugin } from "./cerus-cm";
 
-const plugins: EncounterPlugin[] = [
-	cerusCmPlugin,
-	// dhuumPlugin,
-];
+export const ENCOUNTER_PLUGINS = {
+	[cerusCmPlugin.triggerId]: cerusCmPlugin,
+	// [dhuumPlugin.triggerId]: dhuumPlugin,
 
-export const getPluginsForTriggers = (
-	triggerIds: number[],
-): EncounterPlugin[] => {
-	return plugins.filter((p) =>
-		p.triggerIds.some((id) => triggerIds.includes(id)),
-	);
-};
+	// biome-ignore lint/suspicious/noExplicitAny: This is the assembler
+} satisfies Record<number, EncounterPlugin<any, any>>;
