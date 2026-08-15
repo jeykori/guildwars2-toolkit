@@ -25,7 +25,7 @@ export function checkFlowerFailures(
 	phaseStart: number,
 	timings: { name: string; time: number }[],
 	logData: DpsReportJson,
-	combatReplayDecorations: DecorationRendering[],
+	combatReplayDecorations?: DecorationRendering[],
 ): FlowerMechanicsResult {
 	const flowerFails: FlowerFail[] = [];
 	const terroristPuddles: TerroristPuddleFail[] = [];
@@ -83,11 +83,11 @@ export function checkFlowerFailures(
 	});
 
 	// Identify ALL Terrorist Puddles across the entire phase immediately
-	const puddles = combatReplayDecorations.filter(
+	const puddles = combatReplayDecorations?.filter(
 		(d) => d.metadataSignature === COMBAT_REPLAY_PUDDLE_SIGNATURE,
 	);
 
-	const allTerroristPuddles = puddles.filter((p) => {
+	const allTerroristPuddles = puddles?.filter((p) => {
 		const pos = p.connectedTo?.position;
 		if (!pos) return false;
 		return getEuclideanDist(pos, ARENA_CENTER) < TERRORIST_RADIUS;
@@ -136,37 +136,39 @@ export function checkFlowerFailures(
 		};
 
 		// 2 & 5) Assign blame for Terrorist Puddles spawned DURING this flower
-		const spawnedTerroristPuddles = allTerroristPuddles.filter(
+		const spawnedTerroristPuddles = allTerroristPuddles?.filter(
 			(p) => Math.abs(p.start - flower.expectedInitialHitTime) <= 2000,
 		);
 
-		for (const puddle of spawnedTerroristPuddles) {
-			const pos = puddle.connectedTo.position;
-			if (!pos) continue;
-			let closestPlayer = "";
-			let minDist = Infinity;
+		if (spawnedTerroristPuddles) {
+			for (const puddle of spawnedTerroristPuddles) {
+				const pos = puddle.connectedTo.position;
+				if (!pos) continue;
+				let closestPlayer = "";
+				let minDist = Infinity;
 
-			for (const player of logData.players.map((p) => p.name)) {
-				const playerPos = getPlayerPosition(player, puddle.start, logData);
-				if (!playerPos) continue;
+				for (const player of logData.players.map((p) => p.name)) {
+					const playerPos = getPlayerPosition(player, puddle.start, logData);
+					if (!playerPos) continue;
 
-				const dist = getEuclideanDist(playerPos, pos);
-				if (dist < minDist) {
-					minDist = dist;
-					closestPlayer = player;
+					const dist = getEuclideanDist(playerPos, pos);
+					if (dist < minDist) {
+						minDist = dist;
+						closestPlayer = player;
+					}
 				}
-			}
 
-			if (closestPlayer) {
-				// Log in the distinct terrorist list
-				terroristPuddles.push({
-					actor: closestPlayer,
-					flowerName: flower.name,
-					time: puddle.start,
-				});
+				if (closestPlayer) {
+					// Log in the distinct terrorist list
+					terroristPuddles.push({
+						actor: closestPlayer,
+						flowerName: flower.name,
+						time: puddle.start,
+					});
 
-				// Count as a flower fail as well
-				recordFail(closestPlayer, "Terrorist Puddle", "Failed", puddle.start);
+					// Count as a flower fail as well
+					recordFail(closestPlayer, "Terrorist Puddle", "Failed", puddle.start);
+				}
 			}
 		}
 
@@ -205,7 +207,7 @@ export function checkFlowerFailures(
 				);
 			} else {
 				// They are in the center. Check if ANY terrorist puddle is active right now
-				const isForgiven = allTerroristPuddles.some(
+				const isForgiven = allTerroristPuddles?.some(
 					(p) => hit.time >= p.start && hit.time <= p.end,
 				);
 

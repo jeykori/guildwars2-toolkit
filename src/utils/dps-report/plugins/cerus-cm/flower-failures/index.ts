@@ -75,7 +75,7 @@ export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
 	combatReplay,
 	mapped,
 ) => {
-	const decorations = combatReplay.decorationRenderings;
+	const decorations = combatReplay?.decorationRenderings;
 
 	const p50_10Result = check50_10FlowerFailures(report, decorations);
 	const sub10Result = checkSub10FlowerFailures(report, decorations);
@@ -211,7 +211,7 @@ export const aggregateFlowerFailures: CerusPlugin["aggregateDetails"] = (
 
 const check50_10FlowerFailures = (
 	logData: DpsReportJson,
-	combatReplayDecorations: DecorationRendering[],
+	combatReplayDecorations?: DecorationRendering[],
 ) => {
 	const p3Start =
 		logData.phases.find((p) => p.name === PHASE_50_10)?.start ??
@@ -229,7 +229,7 @@ const check50_10FlowerFailures = (
 
 const checkSub10FlowerFailures = (
 	logData: DpsReportJson,
-	combatReplayDecorations: DecorationRendering[],
+	combatReplayDecorations?: DecorationRendering[],
 ) => {
 	const p3Start = logData.phases.find(
 		(p) => p.name === PHASE_ENRAGED_SMASH,
