@@ -15,35 +15,45 @@ import type {
 } from "../../types";
 import { ENCOUNTER_PLUGINS } from "./plugins";
 
-export interface AggregationFilters {
+interface AggregationFilters {
 	validLogIds: Set<string>;
 	selectedPhaseNames: Set<string>;
 	selectedTargetFilters: Set<string>;
 	activeMetricsDictionary: CustomMetricDefinition[];
 }
 
-export function getActiveMetricsDictionary(
-	dictionary: AssembledMetricDefinition[] | undefined,
-	logs: LogSummary[],
-): AssembledMetricDefinition[] {
-	if (!dictionary || logs.length === 0) return [];
+export interface AggregateReportConfig {
+	data: DpsReportSummary;
+	filteredLogs: LogSummary[];
+	selectedPhaseNames: Set<string>;
+	selectedTargetFilters: Set<string>;
+}
 
-	// Get unique trigger IDs
-	const uniqueTriggerIds = new Set(logs.map((l) => l.triggerId));
-
-	// If we are looking at multiple different bosses, we don't show custom metrics
-	if (uniqueTriggerIds.size !== 1) return [];
-
-	const activeId = Array.from(uniqueTriggerIds)[0];
-
-	return dictionary.filter((metric) => metric.triggerId === activeId);
+export interface AggregatedReportResult {
+	activeMetricsDictionary: AssembledMetricDefinition[];
+	aggregatedSquadMetrics: Record<string, MetricValue>;
+	aggregatedPlayers: AggregatedPlayer[];
+	encounterState: EncounterDetailStates;
 }
 
 // ----------------------------------------------------------------------------
 // NON-EXPORTED HELPER FUNCTIONS
 // ----------------------------------------------------------------------------
 
-export function applyAggregationRules(
+function getActiveMetricsDictionary(
+	dictionary: AssembledMetricDefinition[] | undefined,
+	logs: LogSummary[],
+): AssembledMetricDefinition[] {
+	if (!dictionary || logs.length === 0) return [];
+
+	const uniqueTriggerIds = new Set(logs.map((l) => l.triggerId));
+	if (uniqueTriggerIds.size !== 1) return [];
+
+	const activeId = Array.from(uniqueTriggerIds)[0];
+	return dictionary.filter((metric) => metric.triggerId === activeId);
+}
+
+function applyAggregationRules(
 	dataToAggregate: MetricValue[],
 	metricDef: CustomMetricDefinition,
 ): MetricValue | null {
@@ -60,7 +70,6 @@ export function applyAggregationRules(
 			const vals = scalarVals.map((m) => m.value);
 			let aggregatedValue = 0;
 
-			// Both ScalarMetric and TopPlayersMetric guarantee an `aggregation` field
 			if (metricDef.aggregation === "SUM") {
 				aggregatedValue = vals.reduce((a, b) => a + b, 0);
 			} else if (metricDef.aggregation === "AVG") {
@@ -233,7 +242,6 @@ function processPlayerLogs(
 					(stats.totalMechanics[numId] || 0) + count;
 			});
 
-			// We only care about customSummaryMetrics here (scalar and rate data)
 			Object.entries(pPhase.customSummaryMetrics || {}).forEach(([id, val]) => {
 				if (!stats.customSummaryMetricsData[id])
 					stats.customSummaryMetricsData[id] = [];
@@ -268,11 +276,7 @@ function processPlayerLogs(
 	return stats;
 }
 
-// ----------------------------------------------------------------------------
-// EXPORTED AGGREGATOR
-// ----------------------------------------------------------------------------
-
-export function aggregateSquadData(
+function aggregateSquadData(
 	logs: LogSummary[],
 	selectedPhaseNames: Set<string>,
 	activeDictionary: CustomMetricDefinition[],
@@ -280,16 +284,13 @@ export function aggregateSquadData(
 	const customSummaryMetricsData: Record<string, MetricValue[]> = {};
 
 	logs.forEach((log) => {
-		// Collect Log-level custom metrics
 		Object.entries(log.customSummaryMetrics || {}).forEach(([id, val]) => {
 			if (!customSummaryMetricsData[id]) customSummaryMetricsData[id] = [];
 			customSummaryMetricsData[id].push(val);
 		});
 
-		// Collect Phase-level custom metrics
 		log.phases.forEach((phase) => {
 			if (!selectedPhaseNames.has(phase.name)) return;
-
 			Object.entries(phase.customSummaryMetrics || {}).forEach(([id, val]) => {
 				if (!customSummaryMetricsData[id]) customSummaryMetricsData[id] = [];
 				customSummaryMetricsData[id].push(val);
@@ -300,7 +301,7 @@ export function aggregateSquadData(
 	return aggregateMetricsRecord(customSummaryMetricsData, activeDictionary);
 }
 
-export function aggregatePlayerData(
+function aggregatePlayerData(
 	data: DpsReportSummary,
 	filters: AggregationFilters,
 ): AggregatedPlayer[] {
@@ -352,7 +353,7 @@ export function aggregatePlayerData(
 	});
 }
 
-export function aggregateEncounterDetails(
+function aggregateEncounterDetails(
 	activeTriggerId: number | null,
 	aggregatedPlayers: AggregatedPlayer[],
 	filteredLogs: LogSummary[],
@@ -378,4 +379,61 @@ export function aggregateEncounterDetails(
 		activePlugin: plugin,
 		bespokeDetails: details,
 	} as EncounterDetailStates;
+}
+
+// ----------------------------------------------------------------------------
+// EXPORTED AGGREGATOR
+// ----------------------------------------------------------------------------
+
+export function aggregateReport({
+	data,
+	filteredLogs,
+	selectedPhaseNames,
+	selectedTargetFilters,
+}: AggregateReportConfig): AggregatedReportResult {
+	const activeMetricsDictionary = getActiveMetricsDictionary(
+		data.customMetricsDictionary,
+		filteredLogs,
+	);
+
+	const aggregatedSquadMetrics = aggregateSquadData(
+		filteredLogs,
+		selectedPhaseNames,
+		activeMetricsDictionary,
+	);
+
+	const aggregatedPlayers = aggregatePlayerData(data, {
+		validLogIds: new Set(filteredLogs.map((l) => l.id)),
+		selectedPhaseNames,
+		selectedTargetFilters,
+		activeMetricsDictionary,
+	});
+
+	let activeTriggerId: number | null = null;
+	const firstLog = filteredLogs[0];
+	if (firstLog) {
+		const isSingleEncounter = filteredLogs.every(
+			(l) =>
+				l.triggerId === firstLog.triggerId &&
+				!!l.isCM === !!firstLog.isCM &&
+				!!l.isLegendaryCM === !!firstLog.isLegendaryCM,
+		);
+		if (isSingleEncounter) {
+			activeTriggerId = firstLog.triggerId;
+		}
+	}
+
+	const encounterState = aggregateEncounterDetails(
+		activeTriggerId,
+		aggregatedPlayers,
+		filteredLogs,
+		selectedPhaseNames,
+	);
+
+	return {
+		activeMetricsDictionary,
+		aggregatedSquadMetrics,
+		aggregatedPlayers,
+		encounterState,
+	};
 }

@@ -15,12 +15,7 @@ import type {
 	MetricValue,
 	TargetPriority,
 } from "../../../types";
-import {
-	aggregateEncounterDetails,
-	aggregatePlayerData,
-	aggregateSquadData,
-	getActiveMetricsDictionary,
-} from "../../../utils/dps-report";
+import { aggregateReport } from "../../../utils/dps-report";
 
 export type UseReportAggregatorResult = {
 	maxHpLeft: number;
@@ -204,61 +199,33 @@ export function useReportAggregator(
 			});
 	}, [filteredLogs, selectedPhaseNames]);
 
-	const activeMetricsDictionary = useMemo(() => {
-		return getActiveMetricsDictionary(
-			data?.customMetricsDictionary,
+	// Combined call to aggregate the report
+	const {
+		activeMetricsDictionary,
+		aggregatedSquadMetrics,
+		aggregatedPlayers,
+		encounterState,
+	} = useMemo(() => {
+		if (!data) {
+			return {
+				activeMetricsDictionary: [],
+				aggregatedSquadMetrics: {},
+				aggregatedPlayers: [],
+				encounterState: {
+					triggerId: null,
+					activePlugin: null,
+					bespokeDetails: null,
+				},
+			};
+		}
+
+		return aggregateReport({
+			data,
 			filteredLogs,
-		);
-	}, [data?.customMetricsDictionary, filteredLogs]);
-
-	const aggregatedSquadMetrics = useMemo(() => {
-		return aggregateSquadData(
-			filteredLogs,
-			selectedPhaseNames,
-			activeMetricsDictionary,
-		);
-	}, [filteredLogs, selectedPhaseNames, activeMetricsDictionary]);
-
-	const aggregatedPlayers = useMemo(() => {
-		if (!data) return [];
-
-		return aggregatePlayerData(data, {
-			validLogIds: new Set(filteredLogs.map((l) => l.id)),
 			selectedPhaseNames,
 			selectedTargetFilters,
-			activeMetricsDictionary,
 		});
-	}, [
-		data,
-		filteredLogs,
-		selectedPhaseNames,
-		selectedTargetFilters,
-		activeMetricsDictionary,
-	]);
-
-	// 1. We already have the activeTriggerId safely extracted!
-	const activeTriggerId = useMemo(() => {
-		const firstLog = filteredLogs[0];
-		if (!firstLog) return null;
-
-		const isSingleEncounter = filteredLogs.every(
-			(l) =>
-				l.triggerId === firstLog.triggerId &&
-				!!l.isCM === !!firstLog.isCM &&
-				!!l.isLegendaryCM === !!firstLog.isLegendaryCM,
-		);
-
-		return isSingleEncounter ? firstLog.triggerId : null;
-	}, [filteredLogs]);
-
-	const encounterState = useMemo(() => {
-		return aggregateEncounterDetails(
-			activeTriggerId,
-			aggregatedPlayers,
-			filteredLogs,
-			selectedPhaseNames,
-		);
-	}, [activeTriggerId, aggregatedPlayers, filteredLogs, selectedPhaseNames]);
+	}, [data, filteredLogs, selectedPhaseNames, selectedTargetFilters]);
 
 	return {
 		maxHpLeft,
