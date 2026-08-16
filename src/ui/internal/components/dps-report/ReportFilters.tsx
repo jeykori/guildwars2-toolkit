@@ -1,6 +1,11 @@
 import React from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Slider } from "@/components/ui/slider";
+import { Toggle } from "@/components/ui/toggle";
 import type { DpsReportSummary, LogSummary } from "../../../../types";
-import { useToolkitComponents } from "../../../context";
 import { formatMs } from "../../utils/format";
 
 interface ReportFiltersProps {
@@ -47,17 +52,6 @@ export function ReportFilters({
 	selectedTargetFilters,
 	toggleTargetFilter,
 }: ReportFiltersProps) {
-	const {
-		Card,
-		CardContent,
-		Field,
-		FieldLabel,
-		Slider,
-		Checkbox,
-		Badge,
-		Toggle,
-	} = useToolkitComponents();
-
 	return (
 		<Card>
 			<CardContent className="space-y-4">

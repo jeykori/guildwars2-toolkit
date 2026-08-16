@@ -1,15 +1,18 @@
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import type { LogSummary } from "../../../../../../types";
 import { CERUS_CM_THRESHOLDS } from "../../../../../../utils/dps-report/plugins/cerus-cm/dps-check";
-import { useToolkitComponents } from "../../../../../context";
 
 interface Props {
 	filteredLogs: LogSummary[];
 }
 
 export function CerusPhaseThresholdsCard({ filteredLogs }: Props) {
-	const { Card, CardHeader, CardTitle, CardDescription, CardContent } =
-		useToolkitComponents();
-
 	// Determine mode based on the first available log
 	const isLegendary = !!filteredLogs[0]?.isLegendaryCM;
 	const isCM = !!filteredLogs[0]?.isCM;

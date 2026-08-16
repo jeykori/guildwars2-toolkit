@@ -1,5 +1,11 @@
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import type { AggregatedPlayer, TopPlayersMetric } from "../../../../../types";
-import { useToolkitComponents } from "../../../../context";
 
 interface TopPlayersMetricWidgetProps {
 	metric: TopPlayersMetric;
@@ -10,9 +16,6 @@ export function TopPlayersMetricWidget({
 	metric,
 	aggregatedPlayers,
 }: TopPlayersMetricWidgetProps) {
-	const { Card, CardHeader, CardTitle, CardDescription, CardContent } =
-		useToolkitComponents();
-
 	// Sort players by their scalar value descending, then take top N
 	const topPlayers = [...aggregatedPlayers]
 		.map((p) => {

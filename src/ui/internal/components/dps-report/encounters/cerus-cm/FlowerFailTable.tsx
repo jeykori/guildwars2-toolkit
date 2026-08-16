@@ -1,7 +1,20 @@
 import { useMemo } from "react";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import type { AggregatedPlayer } from "../../../../../../types";
 import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
-import { useToolkitComponents } from "../../../../../context";
 import { useSortableData } from "../../../../hooks/useSortableData";
 import { SortableHeader } from "../../../shared/SortableHeader";
 import type { PluginEncounterProps } from "../types";
@@ -39,19 +52,6 @@ export const FlowerFailTable = ({
 	aggregatedPlayers,
 	encounterDetailStates: { bespokeDetails: details },
 }: PluginEncounterProps<25989>) => {
-	const {
-		Card,
-		CardHeader,
-		CardTitle,
-		CardDescription,
-		CardContent,
-		Table,
-		TableBody,
-		TableCell,
-		TableHeader,
-		TableRow,
-	} = useToolkitComponents();
-
 	const { flowerFailures } = details;
 
 	// Inside FlowerFailTable's useMemo:

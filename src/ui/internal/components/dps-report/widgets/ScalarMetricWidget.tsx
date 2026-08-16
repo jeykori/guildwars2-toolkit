@@ -1,10 +1,21 @@
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
 	LogSummary,
 	MetricValue,
 	ScalarMetric,
 } from "../../../../../types";
 import { evaluateThreshold } from "../../../../../utils/dps-report";
-import { useToolkitComponents } from "../../../../context";
 
 interface ScalarMetricWidgetProps {
 	metric: ScalarMetric;
@@ -17,17 +28,6 @@ export function ScalarMetricWidget({
 	value,
 	filteredLogs,
 }: ScalarMetricWidgetProps) {
-	const {
-		Tooltip,
-		TooltipTrigger,
-		TooltipContent,
-		Card,
-		CardHeader,
-		CardTitle,
-		CardDescription,
-		CardContent,
-	} = useToolkitComponents();
-
 	// 1. Safely extract the raw number based on the dataType
 	let numericValue = 0;
 	let formattedValue = "0";

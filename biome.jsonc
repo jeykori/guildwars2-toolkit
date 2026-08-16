@@ -24,7 +24,11 @@
 			"assist": { "enabled": false }
 		},
 		{
-			"includes": ["playground/public/*", "playground/src/components/ui/*"],
+			"includes": [
+				"src/ui/shadcn/**/*",
+				"playground/public/**/*",
+				"playground/src/components/ui/**/*"
+			],
 			"linter": { "enabled": false }
 		},
 		{

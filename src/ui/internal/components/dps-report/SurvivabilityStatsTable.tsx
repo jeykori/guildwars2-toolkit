@@ -1,5 +1,11 @@
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import type { AggregatedPlayer } from "../../../../types";
-import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { formatNum } from "../../utils/format";
 import { SortableHeader } from "../shared/SortableHeader";
@@ -16,9 +22,6 @@ export function SurvivabilityStatsTable({
 		sortConfig,
 	} = useSortableData(players, "totals.downs");
 	const sortableProps = { requestSort, sortConfig };
-
-	const { Table, TableBody, TableCell, TableHeader, TableRow } =
-		useToolkitComponents();
 
 	return (
 		<section className="space-y-4">

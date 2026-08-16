@@ -1,5 +1,12 @@
+import { buttonVariants } from "@/components/ui/button";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import type { LogSummary } from "../../../../types";
-import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { formatMs } from "../../utils/format";
 import { SortableHeader } from "../shared/SortableHeader";
@@ -9,9 +16,6 @@ type LogsViewProps = {
 };
 
 export function LogsView({ logs }: LogsViewProps) {
-	const { Table, TableBody, TableCell, TableHeader, TableRow, buttonVariants } =
-		useToolkitComponents();
-
 	const {
 		items: sortedLogs,
 		requestSort,

@@ -1,4 +1,9 @@
-import { useToolkitComponents } from "../../../context";
+import { TableHead } from "@/components/ui/table";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortableHeaderProps = {
 	label: string;
@@ -21,9 +26,6 @@ export function SortableHeader({
 	title,
 	overlapIcon = false,
 }: SortableHeaderProps) {
-	const { TableHead, Tooltip, TooltipContent, TooltipTrigger } =
-		useToolkitComponents();
-
 	const innerContent = (
 		<div
 			className={`relative flex items-center w-full ${overlapIcon ? "" : "gap-1"} ${

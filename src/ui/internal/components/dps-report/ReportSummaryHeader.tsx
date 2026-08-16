@@ -1,4 +1,10 @@
-import { useToolkitComponents } from "../../../context";
+import { Badge } from "@/components/ui/badge";
+import {
+	Card,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { formatMs } from "../../utils/format";
 
 interface ReportSummaryHeaderProps {
@@ -13,8 +19,6 @@ interface ReportSummaryHeaderProps {
 }
 
 export function ReportSummaryHeader({ overview }: ReportSummaryHeaderProps) {
-	const { Card, CardHeader, CardTitle, CardDescription, Badge } =
-		useToolkitComponents();
 	return (
 		<Card>
 			<CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">

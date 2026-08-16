@@ -1,6 +1,13 @@
 import { useMemo } from "react";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableFooter,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import type { AggregatedPlayer } from "../../../../types";
-import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { formatNum, formatPct } from "../../utils/format";
 import { SortableHeader } from "../shared/SortableHeader";
@@ -11,9 +18,6 @@ type DamageStatsTableProps = {
 };
 
 export function DamageStatsTable({ players }: DamageStatsTableProps) {
-	const { Table, TableBody, TableCell, TableFooter, TableHeader, TableRow } =
-		useToolkitComponents();
-
 	const {
 		items: sortedPlayers,
 		requestSort,

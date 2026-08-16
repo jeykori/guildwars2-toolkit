@@ -21,7 +21,8 @@
 		"regen": "bun run --tsconfig-override=playground/tsconfig.app.json scripts/regenerate-data.ts",
 		"check": "bunx biome check --write .",
 		"ci": "bunx biome ci .",
-		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit && bunx tsc -p playground/tsconfig.app.json --noEmit"
+		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit && bunx tsc -p playground/tsconfig.app.json --noEmit",
+		"add": "shadcn add"
 	},
 	"exports": {
 		"./utils": {
@@ -37,15 +38,40 @@
 			"import": "./dist/ui/index.js"
 		}
 	},
+	"dependencies": {
+		"@base-ui/react": "^1.7.0",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"lucide-react": "^1.31.0",
+		"tailwind-merge": "^3.6.0"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.7",
 		"@types/bun": "latest",
 		"@types/react": "^19.2.18",
 		"@types/react-dom": "^19.2.4",
-		"react": "^19.2.8",
-		"react-dom": "^19.2.8"
+		"shadcn": "^4.18.0",
+		"tsc-alias": "^1.9.1"
 	},
 	"peerDependencies": {
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8",
+		"recharts": "3.8.0",
+		"tailwindcss": "^4.3.3",
 		"typescript": "^5"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		},
+		"recharts": {
+			"optional": true
+		},
+		"tailwindcss": {
+			"optional": true
+		}
 	}
 }

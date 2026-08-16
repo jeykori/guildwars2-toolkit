@@ -1,10 +1,16 @@
 import { useState } from "react";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import type {
 	AggregatedPlayer,
 	DpsReportSummary,
 	MechanicSeverityGroup,
 } from "../../../../types";
-import { useToolkitComponents } from "../../../context";
 import { useSortableData } from "../../hooks/useSortableData";
 import { SortableHeader } from "../shared/SortableHeader";
 import { PlayerNameCell } from "./PlayerNameCell";
@@ -35,9 +41,6 @@ const sortSeverities = (
 };
 
 export function MechanicsView({ players, dictionary }: MechanicsViewProps) {
-	const { Table, TableBody, TableCell, TableHeader, TableRow } =
-		useToolkitComponents();
-
 	const [viewType, setViewType] = useState<"totals" | "averages">("totals");
 	const {
 		items: sortedPlayers,

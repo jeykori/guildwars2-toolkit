@@ -1,6 +1,25 @@
 import { useMemo, useState } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
-import { useToolkitComponents } from "../../../../../context";
 import type { PluginEncounterProps } from "../types";
 
 const CHART_CONFIG = {
@@ -38,23 +57,6 @@ export function FlowerFailGraph({
 	aggregatedPlayers = [],
 	encounterDetailStates,
 }: PluginEncounterProps<25989>) {
-	const {
-		Card,
-		CardHeader,
-		CardTitle,
-		CardDescription,
-		CardContent,
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue,
-		ChartContainer,
-		ChartTooltip,
-		ChartTooltipContent,
-		recharts: { CartesianGrid, Line, LineChart, XAxis, YAxis },
-	} = useToolkitComponents();
-
 	const details = encounterDetailStates.bespokeDetails;
 
 	const [selectedPlayerName, setSelectedPlayerName] = useState<string>(

@@ -1,5 +1,9 @@
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { AggregatedPlayer } from "../../../../types";
-import { useToolkitComponents } from "../../../context";
 
 type PlayerNameCellProps = {
 	// We use Pick so you can use this component even if you don't have a full AggregatedPlayer object
@@ -10,8 +14,6 @@ type PlayerNameCellProps = {
 };
 
 export function PlayerNameCell({ player }: PlayerNameCellProps) {
-	const { Tooltip, TooltipTrigger, TooltipContent } = useToolkitComponents();
-
 	return (
 		<Tooltip>
 			<TooltipTrigger>

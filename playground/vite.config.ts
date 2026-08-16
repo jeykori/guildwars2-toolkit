@@ -16,8 +16,9 @@ export default defineConfig({
 			"@": path.resolve(import.meta.dirname, "./src"),
 			"@jeykori/guildwars2-toolkit": path.resolve(
 				import.meta.dirname,
-				"../src",
+				"../dist",
 			),
 		},
+		dedupe: ["react", "react-dom"],
 	},
 });

@@ -23,7 +23,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"paths": {
 			"@/*": ["./src/*"],
-			"@jeykori/guildwars2-toolkit/*": ["../src/*"]
+			"@jeykori/guildwars2-toolkit/*": ["../dist/*"]
 		}
 	}
 }

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { DpsReportSummary } from "../../types";
-import { useToolkitComponents } from "../context/toolkit-context";
 import { DamageStatsTable } from "../internal/components/dps-report/DamageStatsTable";
 import { EncounterSummaryWidgets } from "../internal/components/dps-report/EncounterSummaryWidget";
 import { EncounterDetailsView } from "../internal/components/dps-report/encounters/EncounterDetailsView";
@@ -42,9 +43,6 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 				new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
 		);
 	}, [data]);
-
-	const { TooltipProvider, Tabs, TabsList, TabsTrigger, TabsContent } =
-		useToolkitComponents();
 
 	return (
 		<TooltipProvider>

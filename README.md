@@ -26,7 +26,7 @@ bun install @jeykori/guildwars2-toolkit
 
 ### Backend (Utilities Only)
 
-If you only need the data processing utilities, no further setup is required.
+If you only need the data processing utilities, no further setup is required. The UI peer dependencies are completely optional and won't bloat your backend.
 
 ```typescript
 import { DpsReport } from "@jeykori/guildwars2-toolkit/utils";
@@ -38,9 +38,17 @@ const assembled = DpsReport.assembleReports([mapped]);
 
 ### Frontend (UI Components)
 
-The UI components rely on your application's Tailwind CSS, shadcn/ui installation, and Recharts.
+**1. Install Peer Dependencies**
 
-**1. Configure Tailwind**
+The UI components require React, Recharts, and Tailwind CSS.
+
+```bash
+bun add react react-dom recharts tailwindcss
+
+```
+
+**2. Configure Tailwind**
+
 Tell your Tailwind compiler to scan the toolkit for utility classes by adding this to your main `index.css` or `globals.css`:
 
 ```css
@@ -48,54 +56,15 @@ Tell your Tailwind compiler to scan the toolkit for utility classes by adding th
 @source "../node_modules/@jeykori/guildwars2-toolkit/dist/ui";
 ```
 
-**2. Install Required Dependencies & Components**
-Install Recharts and the necessary components into your project using the shadcn CLI:
+**3. Use the Components**
 
-```bash
-bun add recharts
-npx shadcn@latest add badge button card chart checkbox field label select separator slider table tabs toggle tooltip
-
-```
-
-**3. Create a Component Export Module**
-Create a barrel file (e.g., `src/components/shadcn.ts`) to export all required components as a single object:
-
-```typescript
-export * as recharts from "recharts";
-export * from "./ui/badge";
-export * from "./ui/button";
-export * from "./ui/card";
-export * from "./ui/chart";
-export * from "./ui/checkbox";
-export * from "./ui/field";
-export * from "./ui/label";
-export * from "./ui/select";
-export * from "./ui/separator";
-export * from "./ui/slider";
-export * from "./ui/table";
-export * from "./ui/tabs";
-export * from "./ui/toggle";
-export * from "./ui/tooltip";
-```
-
-**4. Wrap Your Application**
-Pass the components to the `ToolkitProvider` at the root of your app or feature:
+You can now import and use the UI components directly in your application:
 
 ```tsx
-import * as shadcn from "@/components/shadcn";
-import {
-	ToolkitProvider,
-	DpsReportSummaryLayout,
-} from "@jeykori/guildwars2-toolkit/ui";
-
-const shadcnComponents = shadcn as ToolkitComponents;
+import { DpsReportSummaryLayout } from "@jeykori/guildwars2-toolkit/ui";
 
 export function App({ data }) {
-	return (
-		<ToolkitProvider components={shadcnComponents}>
-			<DpsReportSummaryLayout data={data} />
-		</ToolkitProvider>
-	);
+	return <DpsReportSummaryLayout data="{data}" />;
 }
 ```
 
