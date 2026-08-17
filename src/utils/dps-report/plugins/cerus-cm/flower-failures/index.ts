@@ -13,18 +13,25 @@ const PHASE_50_10 = "50%-10%";
 const PHASE_ENRAGED_SMASH = "Enraged Smash";
 
 /** Seconds into P3 */
-const p3Timings: Timing[] = [
-	{ name: "1 (Scg)", time: 54.6 },
-	{ name: "2 (Chr)", time: 62.28 },
+const p3Timings = [
+	{ name: "P3-1 (Scg)", time: 54.6 },
+	{ name: "P3-2 (Chr)", time: 62.28 },
 	{ name: "Fast Port (Chr)", time: 129.52 },
 	{ name: "Triangle (Scg)", time: 144.59 },
 	{ name: "Crescent", time: 296.76 },
+] as const satisfies readonly Timing[];
+
+const sub10Timings = [
+	{ name: "Sub-10 (Scg)", time: 5.96 },
+	{ name: "Sub-10 (Chr)", time: 35.95 },
+] as const satisfies readonly Timing[];
+
+export const CERUS_FLOWERS = [
+	...p3Timings.map((t) => t.name),
+	...sub10Timings.map((t) => t.name),
 ];
 
-const sub10Timings: Timing[] = [
-	{ name: "1 (Scg)", time: 5.96 },
-	{ name: "2 (Chr)", time: 35.95 },
-];
+export type CerusFlowerName = (typeof CERUS_FLOWERS)[number];
 
 const ID = "25989.cerus-cm.flower-failures";
 
@@ -36,38 +43,55 @@ export const flowerFailuresMetric: CustomMetricDefinition = {
 	limit: 3,
 };
 
-// HELPER: Merge two FlowerMechanicsResult objects together
+const createZeroMatrix = (): FlowerFailMatrix => ({
+	fails: 0,
+	initialHit: 0,
+	poolTick: 0,
+	terroristPuddle: 0,
+	deaths: 0,
+	flowerBreakdown: CERUS_FLOWERS.reduce(
+		(acc, flowerName) => {
+			acc[flowerName] = 0;
+			return acc;
+		},
+		{} as Record<string, number>,
+	),
+});
+
 const mergeFlowerResults = (
-	a: FlowerMechanicsResult | null,
-	b: FlowerMechanicsResult | null,
-): FlowerMechanicsResult | null => {
-	if (!a && !b) return null;
+	a: FlowerMechanicsResult,
+	b: FlowerMechanicsResult,
+): FlowerMechanicsResult => {
+	const playerAttempts = { ...a.playerAttempts };
 
-	const merged: FlowerMechanicsResult = {
-		flowerFails: [],
-		terroristPuddles: [],
-		playerAttempts: {},
+	for (const [player, count] of Object.entries(b.playerAttempts)) {
+		playerAttempts[player] = (playerAttempts[player] || 0) + count;
+	}
+
+	return {
+		flowerFails: [...a.flowerFails, ...b.flowerFails],
+		terroristPuddles: [...a.terroristPuddles, ...b.terroristPuddles],
+		playerAttempts,
 	};
+};
 
-	if (a) {
-		merged.flowerFails.push(...a.flowerFails);
-		merged.terroristPuddles.push(...a.terroristPuddles);
-		for (const [player, count] of Object.entries(a.playerAttempts)) {
-			merged.playerAttempts[player] =
-				(merged.playerAttempts[player] || 0) + count;
-		}
+// Helper for aggregation
+const mergeMatrixInto = (
+	target: FlowerFailMatrix,
+	source: FlowerFailMatrix,
+) => {
+	target.fails += source.fails;
+	target.initialHit += source.initialHit;
+	target.poolTick += source.poolTick;
+	target.terroristPuddle += source.terroristPuddle;
+	target.deaths += source.deaths;
+
+	for (const [flowerName, count] of Object.entries(
+		source.flowerBreakdown || {},
+	)) {
+		target.flowerBreakdown[flowerName] =
+			(target.flowerBreakdown[flowerName] || 0) + count;
 	}
-
-	if (b) {
-		merged.flowerFails.push(...b.flowerFails);
-		merged.terroristPuddles.push(...b.terroristPuddles);
-		for (const [player, count] of Object.entries(b.playerAttempts)) {
-			merged.playerAttempts[player] =
-				(merged.playerAttempts[player] || 0) + count;
-		}
-	}
-
-	return merged;
 };
 
 export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
@@ -77,13 +101,21 @@ export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
 ) => {
 	const decorations = combatReplay?.decorationRenderings;
 
+	/**
+	 * Note: 50-10 here is ACTUAL 50-10
+	 * - Phase 3 if there was no enrage phase, 50-10 if there was
+	 * - in other words, 50-10 only checks pre-enrage flowers
+	 */
 	const p50_10Result = check50_10FlowerFailures(report, decorations);
 	const sub10Result = checkSub10FlowerFailures(report, decorations);
-	const p3Result = mergeFlowerResults(p50_10Result, sub10Result);
+	const allResults =
+		p50_10Result && sub10Result
+			? mergeFlowerResults(p50_10Result, sub10Result)
+			: p50_10Result;
 
 	const toInject = [
-		[PHASE_FULL_FIGHT, p3Result],
-		[PHASE_3, p3Result],
+		[PHASE_FULL_FIGHT, allResults],
+		[PHASE_3, allResults],
 		[PHASE_50_10, p50_10Result],
 		[PHASE_ENRAGED_SMASH, sub10Result],
 	] as const;
@@ -103,15 +135,10 @@ export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
 				(f) => f.actor === player.characterName,
 			);
 
-			const failMatrix: FlowerFailMatrix = {
-				fails: playerFails.length,
-				initialHit: 0,
-				poolTick: 0,
-				terroristPuddle: 0,
-				deaths: 0,
-			};
-
+			const failMatrix = createZeroMatrix();
 			for (const fail of playerFails) {
+				failMatrix.fails++; // Track total fails
+
 				// Map the string literal reason to the correct camelCase property
 				switch (fail.reason) {
 					case "Initial Hit":
@@ -128,6 +155,11 @@ export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
 				if (fail.severity === "Failed") {
 					failMatrix.deaths++;
 				}
+
+				// Track per-flower breakdown
+				const flowerName = fail.flowerName;
+				failMatrix.flowerBreakdown[flowerName] =
+					(failMatrix.flowerBreakdown[flowerName] || 0) + 1;
 			}
 			phaseFailures[player.account] = failMatrix;
 
@@ -159,14 +191,6 @@ export const aggregateFlowerFailures: CerusPlugin["aggregateDetails"] = (
 	const playerMatrix: Record<string, FlowerFailMatrix> = {};
 	const perLog: Record<string, Record<string, FlowerFailMatrix>> = {};
 
-	const createZeroMatrix = (): FlowerFailMatrix => ({
-		fails: 0,
-		initialHit: 0,
-		poolTick: 0,
-		terroristPuddle: 0,
-		deaths: 0,
-	});
-
 	players.forEach((p) => {
 		playerMatrix[p.account] = createZeroMatrix();
 	});
@@ -185,19 +209,11 @@ export const aggregateFlowerFailures: CerusPlugin["aggregateDetails"] = (
 
 				Object.entries(phaseData).forEach(([account, matrix]) => {
 					if (playerMatrix[account]) {
-						playerMatrix[account].fails += matrix.fails;
-						playerMatrix[account].initialHit += matrix.initialHit;
-						playerMatrix[account].poolTick += matrix.poolTick;
-						playerMatrix[account].terroristPuddle += matrix.terroristPuddle;
-						playerMatrix[account].deaths += matrix.deaths;
+						mergeMatrixInto(playerMatrix[account], matrix);
 					}
 
 					if (logFailures[account]) {
-						logFailures[account].fails += matrix.fails;
-						logFailures[account].initialHit += matrix.initialHit;
-						logFailures[account].poolTick += matrix.poolTick;
-						logFailures[account].terroristPuddle += matrix.terroristPuddle;
-						logFailures[account].deaths += matrix.deaths;
+						mergeMatrixInto(logFailures[account], matrix);
 					}
 				});
 			});
@@ -209,6 +225,7 @@ export const aggregateFlowerFailures: CerusPlugin["aggregateDetails"] = (
 	return { flowerFailures: { playerMatrix, perLog } };
 };
 
+/** Checks `50%-10%`, if not fallback to `Phase 3` */
 const check50_10FlowerFailures = (
 	logData: DpsReportJson,
 	combatReplayDecorations?: DecorationRendering[],

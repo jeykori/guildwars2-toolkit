@@ -5,6 +5,7 @@ import type {
 	FlowerFail,
 	FlowerMechanicsResult,
 	TerroristPuddleFail,
+	Timing,
 } from "./types";
 
 const MECHANICS = {
@@ -23,7 +24,7 @@ const findMechanic = (name: string, mechanics: DpsReportJson["mechanics"]) =>
 
 export function checkFlowerFailures(
 	phaseStart: number,
-	timings: { name: string; time: number }[],
+	timings: readonly Timing[],
 	logData: DpsReportJson,
 	combatReplayDecorations?: DecorationRendering[],
 ): FlowerMechanicsResult {

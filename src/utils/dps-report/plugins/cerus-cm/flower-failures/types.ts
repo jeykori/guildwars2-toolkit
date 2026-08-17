@@ -30,6 +30,8 @@ export type FlowerFailMatrix = {
 	poolTick: number;
 	terroristPuddle: number;
 	deaths: number;
+	/** key = flowerName, value = total fails on this specific flower */
+	flowerBreakdown: Record<string, number>;
 };
 
 export type FlowerFailures = {

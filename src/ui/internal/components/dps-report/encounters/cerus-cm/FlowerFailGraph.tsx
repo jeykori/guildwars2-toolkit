@@ -22,6 +22,8 @@ import {
 import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
 import type { PluginEncounterProps } from "../types";
 
+type FailKeys = Exclude<keyof FlowerFailMatrix, "flowerBreakdown">;
+
 const CHART_CONFIG = {
 	value: {
 		label: "Value",
@@ -29,7 +31,10 @@ const CHART_CONFIG = {
 	},
 };
 
-const STAT_OPTIONS: { label: string; key: keyof FlowerFailMatrix }[] = [
+const STAT_OPTIONS: {
+	label: string;
+	key: FailKeys;
+}[] = [
 	{ label: "Total Fails", key: "fails" },
 	{ label: "Initial Hit", key: "initialHit" },
 	{ label: "Pool Tick", key: "poolTick" },
@@ -63,8 +68,7 @@ export function FlowerFailGraph({
 		() => aggregatedPlayers[0]?.primaryName || "",
 	);
 
-	const [selectedStat, setSelectedStat] =
-		useState<keyof FlowerFailMatrix>("fails");
+	const [selectedStat, setSelectedStat] = useState<FailKeys>("fails");
 
 	const selectedPlayer = useMemo(
 		() => aggregatedPlayers.find((p) => p.primaryName === selectedPlayerName),
@@ -131,9 +135,7 @@ export function FlowerFailGraph({
 				<div className="flex gap-2">
 					<Select
 						value={selectedStat}
-						onValueChange={(val) =>
-							setSelectedStat(val as keyof FlowerFailMatrix)
-						}
+						onValueChange={(val) => setSelectedStat(val as FailKeys)}
 					>
 						<SelectTrigger className="w-40">
 							<SelectValue placeholder="Select stat">

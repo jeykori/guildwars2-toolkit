@@ -3,6 +3,7 @@ import { CERUS_CM_PLUGIN_ID } from "../../../../../../utils/dps-report/plugins/c
 import { ScalarMetricWidget } from "../../widgets/ScalarMetricWidget";
 import type { PluginEncounterProps } from "../types";
 import { CerusPhaseThresholdsCard } from "./CerusPhaseThresholdsCard";
+import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
 import { FlowerFailGraph } from "./FlowerFailGraph";
 import { FlowerFailTable } from "./FlowerFailTable";
 
@@ -44,6 +45,10 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 
 			<div className="w-full">
 				<FlowerFailTable {...props} />
+			</div>
+
+			<div className="w-full">
+				<FlowerBreakdownTable {...props} />
 			</div>
 
 			<div className="w-full overflow-hidden">

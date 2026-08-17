@@ -14,31 +14,19 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import type { AggregatedPlayer } from "../../../../../../types";
+import {
+	CERUS_FLOWERS,
+	type CerusFlowerName,
+} from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures";
 import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
 import { useSortableData } from "../../../../hooks/useSortableData";
 import { SortableHeader } from "../../../shared/SortableHeader";
 import type { PluginEncounterProps } from "../types";
 
-type FlattenedCerusRow = {
+type FlattenedBreakdownRow = {
 	originalPlayer: AggregatedPlayer;
 	playerName: string;
-	[key: string]: AggregatedPlayer | string | number | undefined;
-};
-
-type FailMetricKey = Exclude<keyof FlowerFailMatrix, "flowerBreakdown">;
-
-const COLUMN_CONFIGS: Record<
-	FailMetricKey,
-	{ label: string; colorIfPositive?: "red" | "orange" | "yellow" }
-> = {
-	fails: { label: "Total Fails" },
-	initialHit: { label: "Initial Hit" },
-	poolTick: { label: "Pool Tick" },
-	terroristPuddle: { label: "Terrorist Puddle", colorIfPositive: "red" },
-	deaths: { label: "Deaths", colorIfPositive: "red" },
-};
-
-const SUB_COLUMN_KEYS = Object.keys(COLUMN_CONFIGS) as FailMetricKey[];
+} & Record<CerusFlowerName, number>;
 
 const EMPTY_MATRIX: FlowerFailMatrix = {
 	fails: 0,
@@ -49,46 +37,49 @@ const EMPTY_MATRIX: FlowerFailMatrix = {
 	flowerBreakdown: {},
 };
 
-export const FlowerFailTable = ({
+export const FlowerBreakdownTable = ({
 	aggregatedPlayers,
 	encounterDetailStates: { bespokeDetails: details },
 }: PluginEncounterProps<25989>) => {
 	const { flowerFailures } = details;
 
-	const tableData = useMemo(() => {
-		if (!flowerFailures) return [];
+	const { tableData, columns } = useMemo(() => {
+		if (!flowerFailures) return { tableData: [], columns: [] };
 
-		return aggregatedPlayers.map((player) => {
+		const tableData = aggregatedPlayers.map((player) => {
 			const matrix =
 				flowerFailures.playerMatrix[player.account] || EMPTY_MATRIX;
 
-			const row: FlattenedCerusRow = {
+			const row = {
 				originalPlayer: player,
 				playerName: player.primaryName,
-			};
+			} as FlattenedBreakdownRow;
 
-			SUB_COLUMN_KEYS.forEach((key) => {
-				row[key] = matrix[key] ?? 0;
+			CERUS_FLOWERS.forEach((flower) => {
+				row[flower] = matrix.flowerBreakdown[flower] ?? 0;
 			});
 
 			return row;
 		});
+
+		return { tableData, columns: CERUS_FLOWERS };
 	}, [aggregatedPlayers, flowerFailures]);
 
+	// Default sort updated to playerName
 	const {
 		items: sortedRows,
 		requestSort,
 		sortConfig,
-	} = useSortableData(tableData, "fails");
+	} = useSortableData(tableData);
 
 	const sortableProps = { requestSort, sortConfig };
 
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Flower Failures</CardTitle>
+				<CardTitle>Fails per Flower</CardTitle>
 				<CardDescription>
-					Detailed breakdown of Cerus CM flower mechanism failures per player.
+					Detailed breakdown showing which specific flowers players failed on.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -103,11 +94,11 @@ export const FlowerFailTable = ({
 									{...sortableProps}
 								/>
 
-								{SUB_COLUMN_KEYS.map((key) => (
+								{columns.map((flowerName) => (
 									<SortableHeader
-										key={key}
-										label={COLUMN_CONFIGS[key].label}
-										sortKey={key}
+										key={flowerName}
+										label={flowerName}
+										sortKey={flowerName}
 										align="right"
 										{...sortableProps}
 									/>
@@ -140,22 +131,10 @@ export const FlowerFailTable = ({
 											</div>
 										</TableCell>
 
-										{SUB_COLUMN_KEYS.map((key) => {
-											const val = Number(row[key] ?? 0);
-											const config = COLUMN_CONFIGS[key];
-
-											let colorClass = "";
-											if (val > 0 && config.colorIfPositive) {
-												if (config.colorIfPositive === "red") {
-													colorClass = "text-destructive font-bold";
-												}
-											}
-
+										{columns.map((flowerName) => {
+											const val = Number(row[flowerName] ?? 0);
 											return (
-												<TableCell
-													key={key}
-													className={`text-right ${colorClass}`}
-												>
+												<TableCell key={flowerName} className="text-right">
 													{val > 0 ? val.toLocaleString() : "-"}
 												</TableCell>
 											);
