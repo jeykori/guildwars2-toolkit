@@ -52,7 +52,7 @@ export function DpsReportPage() {
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center min-h-[400px]">
+			<div className="flex items-center justify-center min-h-100">
 				<p className="text-muted-foreground animate-pulse">
 					Processing multiple DPS reports...
 				</p>
@@ -91,7 +91,7 @@ export function DpsReportPage() {
 						<CardTitle>1. Mapped Reports (mapDpsReport)</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<pre className="bg-muted p-4 rounded-md text-xs overflow-auto max-h-[600px]">
+						<pre className="bg-muted p-4 rounded-md text-xs overflow-auto max-h-150">
 							{JSON.stringify(mappedReports, null, 2)}
 						</pre>
 					</CardContent>
@@ -103,7 +103,7 @@ export function DpsReportPage() {
 						<CardTitle>2. Assembled Report Summary Output</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<pre className="bg-muted p-4 rounded-md text-xs overflow-auto max-h-[600px]">
+						<pre className="bg-muted p-4 rounded-md text-xs overflow-auto max-h-150">
 							{JSON.stringify(assembledReport, null, 2)}
 						</pre>
 					</CardContent>
