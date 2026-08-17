@@ -22,8 +22,15 @@
 		"erasableSyntaxOnly": true,
 		"noFallthroughCasesInSwitch": true,
 		"paths": {
-			"@/*": ["./src/*"],
-			"@jeykori/guildwars2-toolkit/*": ["../dist/*"]
+			// Force playground's react/react-dom version
+			"react": ["./node_modules/@types/react"],
+			"@types/react": ["./node_modules/@types/react"],
+			"react-dom": ["./node_modules/@types/react-dom"],
+			"@types/react-dom": ["./node_modules/@types/react-dom"],
+
+			"@/*": ["../src/ui/shadcn/*"],
+			"@playground/*": ["./src/*"],
+			"@jeykori/guildwars2-toolkit/*": ["../src/*"]
 		}
 	}
 }

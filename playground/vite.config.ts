@@ -13,10 +13,11 @@ export default defineConfig({
 	],
 	resolve: {
 		alias: {
-			"@": path.resolve(import.meta.dirname, "./src"),
+			"@": path.resolve(import.meta.dirname, "../src/ui/shadcn"),
+			"@playground": path.resolve(import.meta.dirname, "./src"),
 			"@jeykori/guildwars2-toolkit": path.resolve(
 				import.meta.dirname,
-				"../dist",
+				"../src",
 			),
 		},
 		dedupe: ["react", "react-dom"],
