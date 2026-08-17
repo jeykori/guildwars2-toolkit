@@ -6,9 +6,9 @@ export interface Timing {
 export interface FlowerFail {
 	actor: string;
 	flowerName: string;
-	reason: "Initial Hit" | "Pool Tick" | "Terrorist Puddle";
-	severity: "Medium" | "Failed";
-	time: number;
+	initialHit: boolean;
+	poolTick: boolean;
+	death: boolean;
 }
 
 export interface TerroristPuddleFail {

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { DpsReportSummary } from "../../types";
+import type { DpsReportSummary, EncounterDetailStates } from "../../types";
 import { DamageStatsTable } from "../internal/components/dps-report/DamageStatsTable";
 import { EncounterSummaryWidgets } from "../internal/components/dps-report/EncounterSummaryWidget";
 import { EncounterDetailsView } from "../internal/components/dps-report/encounters/EncounterDetailsView";
@@ -15,6 +15,13 @@ import { useReportAggregator } from "../internal/hooks/useReportAggregator";
 interface DpsReportSummaryLayoutProps {
 	data: DpsReportSummary;
 }
+
+const detailsTabTitles: Record<
+	Exclude<EncounterDetailStates["triggerId"], null>,
+	string
+> = {
+	25989: "Cerus CM Details",
+};
 
 export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 	const {
@@ -66,13 +73,13 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 				/>
 
 				<Tabs defaultValue="main" className="space-y-6">
-					<TabsList>
+					<TabsList className="h-auto! flex flex-wrap">
 						<TabsTrigger value="main">Performance Stats</TabsTrigger>
 						<TabsTrigger value="mechanics">Mechanics</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						{encounterState.triggerId && (
 							<TabsTrigger value="encounter-details">
-								Encounter Details
+								{detailsTabTitles[encounterState.triggerId]}
 							</TabsTrigger>
 						)}
 					</TabsList>

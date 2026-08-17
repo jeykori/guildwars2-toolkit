@@ -1,9 +1,9 @@
 import { DpsReportSummaryLayout } from "@jeykori/guildwars2-toolkit/ui";
+import { getDpsReportSummary } from "@playground/api";
+import NotFoundPage from "@playground/pages/NotFoundPage";
 import { useEffect } from "react";
 import { useParams } from "react-router";
 import useSWR from "swr";
-import { getDpsReportSummary } from "@/api";
-import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function ReportSummaryPage() {
 	const { reportId } = useParams<{ reportId: string }>();

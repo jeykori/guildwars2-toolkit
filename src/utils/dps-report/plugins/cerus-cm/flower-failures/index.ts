@@ -33,15 +33,31 @@ export const CERUS_FLOWERS = [
 
 export type CerusFlowerName = (typeof CERUS_FLOWERS)[number];
 
-const ID = "25989.cerus-cm.flower-failures";
+const ID_FAILS = "25989.cerus-cm.flower-failures.fails";
+const ID_TERRORIST = "25989.cerus-cm.flower-failures.terrorist";
 
-export const flowerFailuresMetric: CustomMetricDefinition = {
-	id: ID,
+const flowerFailuresMetric: CustomMetricDefinition = {
+	id: ID_FAILS,
 	name: "Most Flower Fails",
+	description: "Hit by initial or pool tick",
 	aggregation: "SUM",
 	displayType: "TOP_PLAYERS",
 	limit: 3,
 };
+
+const terroristPuddlesMetric: CustomMetricDefinition = {
+	id: ID_TERRORIST,
+	name: "Top Terrorists",
+	description: "Dropped a puddle near the center",
+	aggregation: "SUM",
+	displayType: "TOP_PLAYERS",
+	limit: 3,
+};
+
+export const flowerFailuresMetrics: CustomMetricDefinition[] = [
+	flowerFailuresMetric,
+	terroristPuddlesMetric,
+];
 
 const createZeroMatrix = (): FlowerFailMatrix => ({
 	fails: 0,
@@ -131,43 +147,44 @@ export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
 		const phaseFailures: Record<string, FlowerFailMatrix> = {};
 
 		mapped.players.forEach((player) => {
+			// Get BOTH standard flower fails and terrorist puddles for this player
 			const playerFails = result.flowerFails.filter(
 				(f) => f.actor === player.characterName,
 			);
+			const playerTerrorists = result.terroristPuddles.filter(
+				(p) => p.actor === player.characterName,
+			);
 
 			const failMatrix = createZeroMatrix();
+
+			// 1. Tally Standard Flower Fails
 			for (const fail of playerFails) {
-				failMatrix.fails++; // Track total fails
+				failMatrix.fails++; // Track total standard fails
 
-				// Map the string literal reason to the correct camelCase property
-				switch (fail.reason) {
-					case "Initial Hit":
-						failMatrix.initialHit++;
-						break;
-					case "Pool Tick":
-						failMatrix.poolTick++;
-						break;
-					case "Terrorist Puddle":
-						failMatrix.terroristPuddle++;
-						break;
-				}
-
-				if (fail.severity === "Failed") {
-					failMatrix.deaths++;
-				}
+				if (fail.initialHit) failMatrix.initialHit++;
+				if (fail.poolTick) failMatrix.poolTick++;
+				if (fail.death) failMatrix.deaths++;
 
 				// Track per-flower breakdown
 				const flowerName = fail.flowerName;
 				failMatrix.flowerBreakdown[flowerName] =
 					(failMatrix.flowerBreakdown[flowerName] || 0) + 1;
 			}
+
+			// 2. Tally Terrorist Puddles
+			failMatrix.terroristPuddle = playerTerrorists.length;
+
 			phaseFailures[player.account] = failMatrix;
 
 			const pPhase = player.phases[phaseIndex];
 			if (pPhase) {
-				pPhase.customSummaryMetrics[ID] = {
+				pPhase.customSummaryMetrics[ID_FAILS] = {
 					dataType: "scalar",
 					value: playerFails.length,
+				};
+				pPhase.customSummaryMetrics[ID_TERRORIST] = {
+					dataType: "scalar",
+					value: playerTerrorists.length,
 				};
 			}
 		});

@@ -1,4 +1,6 @@
+import { InfoIcon } from "lucide-react";
 import { useMemo } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
 	Card,
 	CardContent,
@@ -90,6 +92,20 @@ export const FlowerFailTable = ({
 				<CardDescription>
 					Detailed breakdown of Cerus CM flower mechanism failures per player.
 				</CardDescription>
+				<Alert>
+					<InfoIcon />
+					<AlertDescription>
+						<ul className="list-none">
+							<li>
+								<strong>Fail:</strong> Took damage from initial hit or pool
+								tick.
+							</li>
+							<li>
+								<strong>Terrorist Puddle/Deaths:</strong> Tracked separately.
+							</li>
+						</ul>
+					</AlertDescription>
+				</Alert>
 			</CardHeader>
 			<CardContent>
 				<div className="rounded-md border overflow-hidden">

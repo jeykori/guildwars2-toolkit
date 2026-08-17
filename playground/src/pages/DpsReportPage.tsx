@@ -1,10 +1,15 @@
 import { DpsReport } from "@jeykori/guildwars2-toolkit/utils";
+import { getCombatReplayJson, getDpsReportJson } from "@playground/api";
+import { Badge } from "@playground/components/ui/badge";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@playground/components/ui/card";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import useSWR from "swr";
-import { getCombatReplayJson, getDpsReportJson } from "@/api";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function DpsReportPage() {
 	const [searchParams] = useSearchParams();

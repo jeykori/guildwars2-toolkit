@@ -1,12 +1,12 @@
 import { dpsCheckMetric, parseDpsCheckMetric } from "./dps-check";
 import {
 	aggregateFlowerFailures,
-	flowerFailuresMetric,
+	flowerFailuresMetrics,
 	parseFlowerFailuresMetric,
 } from "./flower-failures";
 import type { CerusAggregatedDetails, CerusPlugin } from "./types";
 
-const dictionary = [dpsCheckMetric, flowerFailuresMetric];
+const dictionary = [dpsCheckMetric, ...flowerFailuresMetrics];
 const parsers = [parseDpsCheckMetric, parseFlowerFailuresMetric];
 const aggregators = [aggregateFlowerFailures];
 
