@@ -4,27 +4,197 @@ import { getEuclideanDist, getPlayerPosition } from "../../../utils";
 import type {
 	FlowerFail,
 	FlowerMechanicsResult,
+	FlowerTime,
+	Pos,
 	TerroristPuddleFail,
-	Timing,
 } from "./types";
+
+type ProcessedFlower = FlowerTime & {
+	castTime: number;
+	expectedInitialHitTime: number;
+	expectedPoolTickTime: number;
+};
 
 const MECHANICS = {
 	wailCast: "WailDesp.C",
 	flowerInitialHit: "Emp.WailDesp.H",
 	flowerPoolTick: "Emp.PoolDesp.H",
 	downed: "Downed",
-	dead: "Dead", // NEW
+	dead: "Dead",
 } as const;
+
+const SKILLS = {
+	PORTAL_ENTRE: 10197,
+	PORTAL_EXEUNT: 10199,
+	SAND_SWELL: 42917,
+};
 
 // Cir240rgba(255, 0, 0, 0.2)0 works as well
 const COMBAT_REPLAY_PUDDLE_SIGNATURE = "Cir240rgba(198, 101, 94, 0.2)0";
+const ARENA_CENTER = [375, 375] as const;
 
 const findMechanic = (name: string, mechanics: DpsReportJson["mechanics"]) =>
 	mechanics.find((m) => m.name === name)?.mechanicsData || [];
 
+// --- HELPER FUNCTIONS ---
+
+function validatePortal(
+	flower: ProcessedFlower,
+	logData: DpsReportJson,
+): boolean {
+	if (flower.type === "none") return true;
+
+	const scale = logData.combatReplayMetaData.inchToPixel;
+	const MAX_FROM_DIST = 450 * scale;
+	const MAX_TO_DIST = 650 * scale;
+	const MIN_SPREAD_DIST = 500 * scale;
+
+	const isValidPair = (pos1: Pos, pos2: Pos) => {
+		const p1NearFrom =
+			getEuclideanDist(pos1, flower.portalFrom) <= MAX_FROM_DIST;
+		const p2NearFrom =
+			getEuclideanDist(pos2, flower.portalFrom) <= MAX_FROM_DIST;
+
+		const checkOther = (otherPos: Pos, fromPos: Pos) => {
+			// Check if otherPos is within MAX_TO_DIST of ANY target in portalTo array
+			if (flower.portalTo?.length) {
+				return flower.portalTo.some(
+					(target) => getEuclideanDist(otherPos, target) <= MAX_TO_DIST,
+				);
+			}
+			return getEuclideanDist(otherPos, fromPos) >= MIN_SPREAD_DIST;
+		};
+
+		return (
+			(p1NearFrom && checkOther(pos2, pos1)) ||
+			(p2NearFrom && checkOther(pos1, pos2))
+		);
+	};
+
+	if (flower.type === "chrono") {
+		/**
+		 * - Port lasts 10 seconds
+		 * - 2 seconds for players to find port
+		 * - port position is at castTime, but opens after duration
+		 */
+		const windowStart = flower.expectedInitialHitTime - 9000;
+		const windowEnd = flower.expectedInitialHitTime - 2000;
+		const mesmers = logData.players.filter((p) =>
+			["Mesmer", "Chronomancer", "Mirage", "Virtuoso", "Troubadour"].includes(
+				p.profession,
+			),
+		);
+
+		for (const maker of mesmers) {
+			const exeunts =
+				maker.rotation
+					?.find((r) => r.id === SKILLS.PORTAL_EXEUNT)
+					?.skills.filter((c) => {
+						const openTime = c.castTime + (c.duration || 0);
+						return openTime >= windowStart && openTime <= windowEnd;
+					}) || [];
+
+			for (const exeunt of exeunts) {
+				const entres =
+					maker.rotation
+						?.find((r) => r.id === SKILLS.PORTAL_ENTRE)
+						?.skills.filter((c) => c.castTime <= exeunt.castTime) || [];
+				const entre = entres.at(-1);
+
+				if (entre) {
+					const pos1 = getPlayerPosition(maker.name, entre.castTime, logData);
+					const pos2 = getPlayerPosition(maker.name, exeunt.castTime, logData);
+
+					if (pos1 && pos2 && isValidPair(pos1 as Pos, pos2 as Pos)) {
+						return true;
+					}
+				}
+			}
+		}
+	} else if (flower.type === "scourge") {
+		/**
+		 * - Port lasts 8 seconds
+		 * - 2 seconds for players to find port
+		 * - port position and opening is at castTime + duration
+		 */
+		const windowStart = flower.expectedInitialHitTime - 7000;
+		const windowEnd = flower.expectedInitialHitTime - 2000;
+		const necros = logData.players.filter((p) =>
+			p.profession.includes("Scourge"),
+		);
+
+		for (const maker of necros) {
+			const swells =
+				maker.rotation
+					?.find((r) => r.id === SKILLS.SAND_SWELL)
+					?.skills.filter((c) => {
+						const openTime = c.castTime + (c.duration || 0);
+						return openTime >= windowStart && openTime <= windowEnd;
+					}) || [];
+
+			for (const swell of swells) {
+				const castEnd = swell.castTime + (swell.duration || 0);
+
+				const pos1 = getPlayerPosition(maker.name, swell.castTime, logData);
+				const pos2 = getPlayerPosition(maker.name, castEnd, logData);
+
+				if (pos1 && pos2 && isValidPair(pos1 as Pos, pos2 as Pos)) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+function getTerroristFails(
+	flower: ProcessedFlower,
+	allTerroristPuddles: DecorationRendering[] | undefined,
+	logData: DpsReportJson,
+): TerroristPuddleFail[] {
+	const fails: TerroristPuddleFail[] = [];
+	const spawnedPuddles = allTerroristPuddles?.filter(
+		(p) => Math.abs(p.start - flower.expectedInitialHitTime) <= 2000,
+	);
+
+	if (!spawnedPuddles) return fails;
+
+	for (const puddle of spawnedPuddles) {
+		const pos = puddle.connectedTo.position;
+		if (!pos) continue;
+
+		let closestPlayer = "";
+		let minDist = Infinity;
+
+		for (const player of logData.players.map((p) => p.name)) {
+			const playerPos = getPlayerPosition(player, puddle.start, logData);
+			if (playerPos) {
+				const dist = getEuclideanDist(playerPos, pos);
+				if (dist < minDist) {
+					minDist = dist;
+					closestPlayer = player;
+				}
+			}
+		}
+
+		if (closestPlayer) {
+			fails.push({
+				actor: closestPlayer,
+				flowerName: flower.name,
+				time: puddle.start,
+			});
+		}
+	}
+
+	return fails;
+}
+
+// --- MAIN EXPORT ---
+
 export function checkFlowerFailures(
 	phaseStart: number,
-	timings: readonly Timing[],
+	timings: readonly FlowerTime[],
 	logData: DpsReportJson,
 	combatReplayDecorations?: DecorationRendering[],
 ): FlowerMechanicsResult {
@@ -32,10 +202,8 @@ export function checkFlowerFailures(
 	const terroristPuddles: TerroristPuddleFail[] = [];
 	const playerAttempts: Record<string, number> = {};
 
-	const ARENA_CENTER = [375, 375] as const;
 	const TERRORIST_RADIUS = 450 * logData.combatReplayMetaData.inchToPixel;
 
-	// Extract basic log arrays
 	const { mechanics } = logData;
 	const casts = findMechanic(MECHANICS.wailCast, mechanics);
 	const initialHits = findMechanic(MECHANICS.flowerInitialHit, mechanics);
@@ -43,7 +211,6 @@ export function checkFlowerFailures(
 	const downs = findMechanic(MECHANICS.downed, mechanics);
 	const deaths = findMechanic(MECHANICS.dead, mechanics);
 
-	// Helper: Find earliest death time for each player
 	const playerDeathTimes = new Map<string, number>();
 	for (const player of logData.players) {
 		playerAttempts[player.name] = 0;
@@ -53,27 +220,10 @@ export function checkFlowerFailures(
 		}
 	}
 
-	// Helper: Check if player downed within 3 seconds of a hit
-	const didDown = (actor: string, hitTime: number): boolean => {
-		return downs.some(
+	const didDown = (actor: string, hitTime: number): boolean =>
+		downs.some(
 			(d) => d.actor === actor && d.time >= hitTime && d.time <= hitTime + 3000,
 		);
-	};
-
-	const flowers = timings.map((expected) => {
-		const expectedTime = phaseStart + expected.time * 1000;
-		const exactCast = casts.find(
-			(c) => Math.abs(c.time - expectedTime) <= 2500,
-		);
-
-		const castTime = exactCast ? exactCast.time : expectedTime;
-		return {
-			name: expected.name,
-			castTime,
-			expectedInitialHitTime: castTime + 5000,
-			expectedPoolTickTime: castTime + 6000,
-		};
-	});
 
 	const allTerroristPuddles = combatReplayDecorations?.filter((p) => {
 		if (p.metadataSignature !== COMBAT_REPLAY_PUDDLE_SIGNATURE) return false;
@@ -81,24 +231,27 @@ export function checkFlowerFailures(
 		return pos && getEuclideanDist(pos, ARENA_CENTER) < TERRORIST_RADIUS;
 	});
 
-	for (const flower of flowers) {
-		const playerState = new Map<
-			string,
-			{ initialHit: boolean; poolTick: boolean; death: boolean }
-		>();
+	const flowers: ProcessedFlower[] = timings.map((expected) => {
+		const expectedTime = phaseStart + expected.time * 1000;
+		const exactCast = casts.find(
+			(c) => Math.abs(c.time - expectedTime) <= 2500,
+		);
+		const castTime = exactCast ? exactCast.time : expectedTime;
 
-		const getPlayerState = (actor: string) => {
-			if (!playerState.has(actor)) {
-				playerState.set(actor, {
-					initialHit: false,
-					poolTick: false,
-					death: false,
-				});
-			}
-			// biome-ignore lint/style/noNonNullAssertion: initiatized above
-			return playerState.get(actor)!;
+		return {
+			...expected,
+			castTime,
+			expectedInitialHitTime: castTime + 5000,
+			expectedPoolTickTime: castTime + 6000,
 		};
+	});
 
+	for (const flower of flowers) {
+		if (flower.expectedInitialHitTime > logData.durationMS) {
+			break;
+		}
+
+		// 1) Track Attempts
 		for (const player of logData.players) {
 			const deathTime = playerDeathTimes.get(player.name) || logData.durationMS;
 			if (deathTime > flower.expectedInitialHitTime) {
@@ -106,41 +259,30 @@ export function checkFlowerFailures(
 			}
 		}
 
-		// 1) Isolate Terrorist Puddles (No longer affects flower fails)
-		const spawnedTerroristPuddles = allTerroristPuddles?.filter(
-			(p) => Math.abs(p.start - flower.expectedInitialHitTime) <= 2000,
+		// 2) Isolate Terrorist Puddles
+		terroristPuddles.push(
+			...getTerroristFails(flower, allTerroristPuddles, logData),
 		);
 
-		if (spawnedTerroristPuddles) {
-			for (const puddle of spawnedTerroristPuddles) {
-				const pos = puddle.connectedTo.position;
-				if (!pos) continue;
+		// 3) Validate Portal
+		const isPortalValid = validatePortal(flower, logData);
 
-				let closestPlayer = "";
-				let minDist = Infinity;
+		// 4) Process Hits
+		const playerState = new Map<
+			string,
+			{ initialHit: boolean; poolTick: boolean; death: boolean }
+		>();
+		const getPlayerState = (actor: string) => {
+			if (!playerState.has(actor))
+				playerState.set(actor, {
+					initialHit: false,
+					poolTick: false,
+					death: false,
+				});
+			// biome-ignore lint/style/noNonNullAssertion: initiatized above
+			return playerState.get(actor)!;
+		};
 
-				for (const player of logData.players.map((p) => p.name)) {
-					const playerPos = getPlayerPosition(player, puddle.start, logData);
-					if (playerPos) {
-						const dist = getEuclideanDist(playerPos, pos);
-						if (dist < minDist) {
-							minDist = dist;
-							closestPlayer = player;
-						}
-					}
-				}
-
-				if (closestPlayer) {
-					terroristPuddles.push({
-						actor: closestPlayer,
-						flowerName: flower.name,
-						time: puddle.start,
-					});
-				}
-			}
-		}
-
-		// 2) Check Initial Hits
 		const currentInitialHits = initialHits.filter(
 			(h) => Math.abs(h.time - flower.expectedInitialHitTime) <= 1500,
 		);
@@ -150,7 +292,6 @@ export function checkFlowerFailures(
 			if (didDown(hit.actor, hit.time)) state.death = true;
 		}
 
-		// 3) Check Pool Ticks
 		const currentPoolHits = poolHits.filter(
 			(h) => Math.abs(h.time - flower.expectedPoolTickTime) <= 1500,
 		);
@@ -162,7 +303,6 @@ export function checkFlowerFailures(
 
 			let shouldForgive = false;
 			if (distFromCenter <= TERRORIST_RADIUS) {
-				// In center: forgive if any terrorist puddle is active
 				shouldForgive = !!allTerroristPuddles?.some(
 					(p) => hit.time >= p.start && hit.time <= p.end,
 				);
@@ -175,24 +315,21 @@ export function checkFlowerFailures(
 			}
 		}
 
-		// 4) Compile the fails for this flower
-		for (const [actor, state] of playerState.entries()) {
-			// If they got hit by EITHER mechanic, it counts as a flower fail
-			if (state.initialHit || state.poolTick) {
-				flowerFails.push({
-					actor,
-					flowerName: flower.name,
-					initialHit: state.initialHit,
-					poolTick: state.poolTick,
-					death: state.death,
-				});
+		// 5) Compile Fails (Forgive everyone if portal failed)
+		if (isPortalValid) {
+			for (const [actor, state] of playerState.entries()) {
+				if (state.initialHit || state.poolTick) {
+					flowerFails.push({
+						actor,
+						flowerName: flower.name,
+						initialHit: state.initialHit,
+						poolTick: state.poolTick,
+						death: state.death,
+					});
+				}
 			}
 		}
 	}
 
-	return {
-		flowerFails,
-		terroristPuddles,
-		playerAttempts,
-	};
+	return { flowerFails, terroristPuddles, playerAttempts };
 }

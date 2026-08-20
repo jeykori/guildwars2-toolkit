@@ -1,7 +1,21 @@
-export interface Timing {
+export type Pos = readonly [number, number];
+
+type Portal = {
+	type: "chrono" | "scourge";
+	portalFrom: Pos;
+	portalTo?: Pos[];
+};
+
+type NoPortal = {
+	type: "none";
+};
+
+type BaseFlower = {
 	name: string;
 	time: number;
-}
+};
+
+export type FlowerTime = BaseFlower & (Portal | NoPortal);
 
 export interface FlowerFail {
 	actor: string;

@@ -4,7 +4,11 @@ import type {
 } from "../../../../../types";
 import type { DecorationRendering } from "../../../../../types/dps-report/elite-insights/combat-replay-json";
 import type { CerusLogDetails, CerusPlugin } from "../types";
-import type { FlowerFailMatrix, FlowerMechanicsResult, Timing } from "./types";
+import type {
+	FlowerFailMatrix,
+	FlowerMechanicsResult,
+	FlowerTime,
+} from "./types";
 import { checkFlowerFailures } from "./util";
 
 const PHASE_FULL_FIGHT = "Full Fight";
@@ -12,19 +16,65 @@ const PHASE_3 = "Phase 3";
 const PHASE_50_10 = "50%-10%";
 const PHASE_ENRAGED_SMASH = "Enraged Smash";
 
+const center = [375, 375] as const;
+const circle = [583.304, 650.803] as const;
+const x = [577.652, 128.497] as const; // more left
+const x_2 = [501.368, 98.815] as const; // closer to square
+// const star = [443.968, 555.425] as const;
+// const triangle = [393.558, 223.875] as const;
+const heart = [410.808, 327.373] as const;
+
 /** Seconds into P3 */
 const p3Timings = [
-	{ name: "P3-1 (Scg)", time: 54.6 },
-	{ name: "P3-2 (Chr)", time: 62.28 },
-	{ name: "Fast Port (Chr)", time: 129.52 },
-	{ name: "Triangle (Scg)", time: 144.59 },
-	{ name: "Crescent", time: 296.76 },
-] as const satisfies readonly Timing[];
+	{
+		// boss -> star
+		name: "P3-1 (Scg)",
+		time: 54.6,
+		type: "scourge",
+		portalFrom: center,
+	},
+	{
+		// heart -> circle
+		name: "P3-2 (Chr)",
+		time: 62.28,
+		type: "chrono",
+		portalFrom: heart,
+		portalTo: [circle],
+	},
+	{
+		// boss -> X
+		name: "Fast Port (Chr)",
+		time: 129.52,
+		type: "chrono",
+		portalFrom: center,
+		portalTo: [x, x_2],
+	},
+	{
+		// Boss -> Triangle (rely on distance)
+		name: "Triangle (Scg)",
+		time: 144.59,
+		type: "scourge",
+		portalFrom: center,
+	},
+	{ name: "Crescent", time: 296.76, type: "none" },
+] as const satisfies readonly FlowerTime[];
 
 const sub10Timings = [
-	{ name: "Sub-10 (Scg)", time: 5.96 },
-	{ name: "Sub-10 (Chr)", time: 35.95 },
-] as const satisfies readonly Timing[];
+	{
+		// heart -> outside of center
+		name: "Sub-10 (Scg)",
+		time: 5.96,
+		type: "scourge",
+		portalFrom: heart,
+	},
+	{
+		// heart -> outside of center
+		name: "Sub-10 (Chr)",
+		time: 35.95,
+		type: "chrono",
+		portalFrom: heart,
+	},
+] as const satisfies readonly FlowerTime[];
 
 export const CERUS_FLOWERS = [
 	...p3Timings.map((t) => t.name),

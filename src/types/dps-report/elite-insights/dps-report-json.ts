@@ -80,6 +80,16 @@ type Player = {
 		resurrects: number;
 		resurrectTime: number;
 	}[];
+	rotation: {
+		/** skill ID */
+		id: number;
+		skills: {
+			castTime: number;
+			duration: number;
+			timeGained: number;
+			quickness: number;
+		}[];
+	}[];
 };
 
 type Dps = {
