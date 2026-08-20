@@ -20,7 +20,11 @@ export function LogsView({ logs }: LogsViewProps) {
 		items: sortedLogs,
 		requestSort,
 		sortConfig,
-	} = useSortableData(logs, "startTime");
+	} = useSortableData(logs, {
+		key: "startTime",
+		direction: "asc",
+		type: "date",
+	});
 	const sortableProps = { requestSort, sortConfig };
 
 	return (
@@ -38,12 +42,14 @@ export function LogsView({ logs }: LogsViewProps) {
 							label="Start Time"
 							sortKey="startTime"
 							align="left"
+							type="date"
 							{...sortableProps}
 						/>
 						<SortableHeader
 							label="End Time"
 							sortKey="endTime"
 							align="left"
+							type="date"
 							{...sortableProps}
 						/>
 						<SortableHeader

@@ -22,7 +22,7 @@ export function DamageStatsTable({ players }: DamageStatsTableProps) {
 		items: sortedPlayers,
 		requestSort,
 		sortConfig,
-	} = useSortableData(players, "averages.targetDps");
+	} = useSortableData(players, { key: "averages.targetDps" });
 	const sortableProps = { requestSort, sortConfig };
 
 	const { totalTargetDps, totalCleaveDps, avgQuickness, avgAlacrity } =

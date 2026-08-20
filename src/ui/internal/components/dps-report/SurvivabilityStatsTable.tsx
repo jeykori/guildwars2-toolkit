@@ -20,7 +20,7 @@ export function SurvivabilityStatsTable({
 		items: sortedPlayers,
 		requestSort,
 		sortConfig,
-	} = useSortableData(players, "totals.downs");
+	} = useSortableData(players, { key: "totals.downs" });
 	const sortableProps = { requestSort, sortConfig };
 
 	return (

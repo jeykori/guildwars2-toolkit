@@ -8,8 +8,9 @@ import {
 type SortableHeaderProps = {
 	label: string;
 	sortKey: string;
-	requestSort: (key: string) => void;
+	requestSort: (key: string, type?: "auto" | "date") => void;
 	sortConfig: { key: string; direction: "asc" | "desc" } | null;
+	type?: "auto" | "date";
 	align?: "left" | "right";
 	className?: string;
 	title?: string;
@@ -21,6 +22,7 @@ export function SortableHeader({
 	sortKey,
 	requestSort,
 	sortConfig,
+	type = "auto",
 	align = "right",
 	className = "",
 	title,
@@ -47,7 +49,7 @@ export function SortableHeader({
 	return (
 		<TableHead
 			className={`cursor-pointer hover:bg-accent transition-colors select-none ${className}`}
-			onClick={() => requestSort(sortKey)}
+			onClick={() => requestSort(sortKey, type)}
 		>
 			{title ? (
 				<Tooltip>

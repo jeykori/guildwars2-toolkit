@@ -81,7 +81,7 @@ export const FlowerFailTable = ({
 		items: sortedRows,
 		requestSort,
 		sortConfig,
-	} = useSortableData(tableData, "fails");
+	} = useSortableData(tableData, { key: "fails" });
 
 	const sortableProps = { requestSort, sortConfig };
 
