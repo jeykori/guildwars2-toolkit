@@ -3,7 +3,13 @@ import type {
 	DpsReportJson,
 } from "../../../../../types";
 import type { DecorationRendering } from "../../../../../types/dps-report/elite-insights/combat-replay-json";
-import type { CerusLogDetails, CerusPlugin } from "../types";
+import { FLOWER_PORTAL_IDS } from "../encounter-context/constants";
+import type {
+	CerusEncounterContext,
+	CerusLogDetails,
+	CerusPlugin,
+	CerusSubParser,
+} from "../types";
 import type {
 	FlowerFailMatrix,
 	FlowerMechanicsResult,
@@ -16,47 +22,37 @@ const PHASE_3 = "Phase 3";
 const PHASE_50_10 = "50%-10%";
 const PHASE_ENRAGED_SMASH = "Enraged Smash";
 
-const center = [375, 375] as const;
-const circle = [583.304, 650.803] as const;
-const x = [577.652, 128.497] as const; // more left
-const x_2 = [501.368, 98.815] as const; // closer to square
-// const star = [443.968, 555.425] as const;
-// const triangle = [393.558, 223.875] as const;
-const heart = [410.808, 327.373] as const;
-
 /** Seconds into P3 */
 const p3Timings = [
 	{
 		// boss -> star
 		name: "P3-1 (Scg)",
 		time: 54.6,
-		type: "scourge",
-		portalFrom: center,
+		hasPortal: true,
+		portalId: FLOWER_PORTAL_IDS.p3[3],
 	},
 	{
 		// heart -> circle
 		name: "P3-2 (Chr)",
 		time: 62.28,
-		type: "chrono",
-		portalFrom: heart,
-		portalTo: [circle],
+		hasPortal: true,
+		portalId: FLOWER_PORTAL_IDS.p3[4],
 	},
 	{
 		// boss -> X
 		name: "Fast Port (Chr)",
 		time: 129.52,
-		type: "chrono",
-		portalFrom: center,
-		portalTo: [x, x_2],
+		hasPortal: true,
+		portalId: FLOWER_PORTAL_IDS.p3[7],
 	},
 	{
 		// Boss -> Triangle (rely on distance)
 		name: "Triangle (Scg)",
 		time: 144.59,
-		type: "scourge",
-		portalFrom: center,
+		hasPortal: true,
+		portalId: FLOWER_PORTAL_IDS.p3[8],
 	},
-	{ name: "Crescent", time: 296.76, type: "none" },
+	{ name: "Crescent", time: 296.76, hasPortal: false },
 ] as const satisfies readonly FlowerTime[];
 
 const sub10Timings = [
@@ -64,15 +60,15 @@ const sub10Timings = [
 		// heart -> outside of center
 		name: "Sub-10 (Scg)",
 		time: 5.96,
-		type: "scourge",
-		portalFrom: heart,
+		hasPortal: true,
+		portalId: FLOWER_PORTAL_IDS.p4[1],
 	},
 	{
 		// heart -> outside of center
 		name: "Sub-10 (Chr)",
 		time: 35.95,
-		type: "chrono",
-		portalFrom: heart,
+		hasPortal: true,
+		portalId: FLOWER_PORTAL_IDS.p4[2],
 	},
 ] as const satisfies readonly FlowerTime[];
 
@@ -160,10 +156,11 @@ const mergeMatrixInto = (
 	}
 };
 
-export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
+export const parseFlowerFailuresMetric: CerusSubParser = (
 	report,
 	combatReplay,
 	mapped,
+	encounterContext,
 ) => {
 	const decorations = combatReplay?.decorationRenderings;
 
@@ -172,8 +169,16 @@ export const parseFlowerFailuresMetric: CerusPlugin["parseLog"] = (
 	 * - Phase 3 if there was no enrage phase, 50-10 if there was
 	 * - in other words, 50-10 only checks pre-enrage flowers
 	 */
-	const p50_10Result = check50_10FlowerFailures(report, decorations);
-	const sub10Result = checkSub10FlowerFailures(report, decorations);
+	const p50_10Result = check50_10FlowerFailures(
+		report,
+		encounterContext,
+		decorations,
+	);
+	const sub10Result = checkSub10FlowerFailures(
+		report,
+		encounterContext,
+		decorations,
+	);
 	const allResults =
 		p50_10Result && sub10Result
 			? mergeFlowerResults(p50_10Result, sub10Result)
@@ -295,6 +300,7 @@ export const aggregateFlowerFailures: CerusPlugin["aggregateDetails"] = (
 /** Checks `50%-10%`, if not fallback to `Phase 3` */
 const check50_10FlowerFailures = (
 	logData: DpsReportJson,
+	encounterContext: CerusEncounterContext,
 	combatReplayDecorations?: DecorationRendering[],
 ) => {
 	const p3Start =
@@ -306,6 +312,7 @@ const check50_10FlowerFailures = (
 	return checkFlowerFailures(
 		p3Start,
 		p3Timings,
+		encounterContext,
 		logData,
 		combatReplayDecorations,
 	);
@@ -313,6 +320,7 @@ const check50_10FlowerFailures = (
 
 const checkSub10FlowerFailures = (
 	logData: DpsReportJson,
+	encounterContext: CerusEncounterContext,
 	combatReplayDecorations?: DecorationRendering[],
 ) => {
 	const p3Start = logData.phases.find(
@@ -324,6 +332,7 @@ const checkSub10FlowerFailures = (
 	return checkFlowerFailures(
 		p3Start,
 		sub10Timings,
+		encounterContext,
 		logData,
 		combatReplayDecorations,
 	);

@@ -4,6 +4,27 @@ import type {
 	FlowerFailures,
 } from "./flower-failures/types";
 
+export type CerusPhase =
+	| "Phase 1"
+	| "Phase 2"
+	| "Phase 3" // Same as 50%-10%
+	| "Enraged Smash";
+
+export interface PortalEvent {
+	id: string; // The assigned ID from ExpectedPortal
+	caster: string;
+	type: "scourge" | "chrono";
+	openTime: number;
+	closeTime: number;
+	locationFrom: readonly [number, number];
+	locationTo: readonly [number, number];
+}
+
+export interface CerusEncounterContext {
+	phaseStarts: Partial<Record<CerusPhase, number>>;
+	portals: PortalEvent[]; // Only contains successfully identified portals
+}
+
 export type CerusLogDetails = {
 	flowerFailures?: FlowerFailures;
 };
@@ -16,3 +37,7 @@ export type CerusPlugin = EncounterPlugin<
 	CerusLogDetails,
 	CerusAggregatedDetails
 >;
+
+export type CerusSubParser = (
+	...args: [...Parameters<CerusPlugin["parseLog"]>, CerusEncounterContext]
+) => ReturnType<CerusPlugin["parseLog"]>;

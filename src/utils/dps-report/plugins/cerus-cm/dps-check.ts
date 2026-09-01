@@ -1,5 +1,5 @@
 import type { CustomMetricDefinition, ThresholdStep } from "../../../../types";
-import type { CerusPlugin } from "./types";
+import type { CerusSubParser } from "./types";
 
 export const CERUS_CM_PLUGIN_ID = "25989.cerus-cm.dps-check";
 
@@ -60,7 +60,7 @@ export const dpsCheckMetric: CustomMetricDefinition = {
 	},
 };
 
-export const parseDpsCheckMetric: CerusPlugin["parseLog"] = (
+export const parseDpsCheckMetric: CerusSubParser = (
 	_report,
 	_combatReplay,
 	mapped,

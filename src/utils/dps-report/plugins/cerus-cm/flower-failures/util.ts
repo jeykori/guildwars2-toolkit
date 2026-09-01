@@ -1,11 +1,12 @@
 import type { DpsReportJson } from "../../../../../types";
 import type { DecorationRendering } from "../../../../../types/dps-report/elite-insights/combat-replay-json";
 import { getEuclideanDist, getPlayerPosition } from "../../../utils";
+import { getValidPortal } from "../encounter-context/context";
+import type { CerusEncounterContext } from "../types";
 import type {
 	FlowerFail,
 	FlowerMechanicsResult,
 	FlowerTime,
-	Pos,
 	TerroristPuddleFail,
 } from "./types";
 
@@ -23,130 +24,12 @@ const MECHANICS = {
 	dead: "Dead",
 } as const;
 
-const SKILLS = {
-	PORTAL_ENTRE: 10197,
-	PORTAL_EXEUNT: 10199,
-	SAND_SWELL: 42917,
-};
-
 // Cir240rgba(255, 0, 0, 0.2)0 works as well
 const COMBAT_REPLAY_PUDDLE_SIGNATURE = "Cir240rgba(198, 101, 94, 0.2)0";
 const ARENA_CENTER = [375, 375] as const;
 
 const findMechanic = (name: string, mechanics: DpsReportJson["mechanics"]) =>
 	mechanics.find((m) => m.name === name)?.mechanicsData || [];
-
-// --- HELPER FUNCTIONS ---
-
-function validatePortal(
-	flower: ProcessedFlower,
-	logData: DpsReportJson,
-): boolean {
-	if (flower.type === "none") return true;
-
-	const scale = logData.combatReplayMetaData.inchToPixel;
-	const MAX_FROM_DIST = 450 * scale;
-	const MAX_TO_DIST = 650 * scale;
-	const MIN_SPREAD_DIST = 500 * scale;
-
-	const isValidPair = (pos1: Pos, pos2: Pos) => {
-		const p1NearFrom =
-			getEuclideanDist(pos1, flower.portalFrom) <= MAX_FROM_DIST;
-		const p2NearFrom =
-			getEuclideanDist(pos2, flower.portalFrom) <= MAX_FROM_DIST;
-
-		const checkOther = (otherPos: Pos, fromPos: Pos) => {
-			// Check if otherPos is within MAX_TO_DIST of ANY target in portalTo array
-			if (flower.portalTo?.length) {
-				return flower.portalTo.some(
-					(target) => getEuclideanDist(otherPos, target) <= MAX_TO_DIST,
-				);
-			}
-			return getEuclideanDist(otherPos, fromPos) >= MIN_SPREAD_DIST;
-		};
-
-		return (
-			(p1NearFrom && checkOther(pos2, pos1)) ||
-			(p2NearFrom && checkOther(pos1, pos2))
-		);
-	};
-
-	if (flower.type === "chrono") {
-		/**
-		 * - Port lasts 10 seconds
-		 * - 2 seconds for players to find port
-		 * - port position is at castTime, but opens after duration
-		 */
-		const windowStart = flower.expectedInitialHitTime - 9000;
-		const windowEnd = flower.expectedInitialHitTime - 2000;
-		const mesmers = logData.players.filter((p) =>
-			["Mesmer", "Chronomancer", "Mirage", "Virtuoso", "Troubadour"].includes(
-				p.profession,
-			),
-		);
-
-		for (const maker of mesmers) {
-			const exeunts =
-				maker.rotation
-					?.find((r) => r.id === SKILLS.PORTAL_EXEUNT)
-					?.skills.filter((c) => {
-						const openTime = c.castTime + (c.duration || 0);
-						return openTime >= windowStart && openTime <= windowEnd;
-					}) || [];
-
-			for (const exeunt of exeunts) {
-				const entres =
-					maker.rotation
-						?.find((r) => r.id === SKILLS.PORTAL_ENTRE)
-						?.skills.filter((c) => c.castTime <= exeunt.castTime) || [];
-				const entre = entres.at(-1);
-
-				if (entre) {
-					const pos1 = getPlayerPosition(maker.name, entre.castTime, logData);
-					const pos2 = getPlayerPosition(maker.name, exeunt.castTime, logData);
-
-					if (pos1 && pos2 && isValidPair(pos1 as Pos, pos2 as Pos)) {
-						return true;
-					}
-				}
-			}
-		}
-	} else if (flower.type === "scourge") {
-		/**
-		 * - Port lasts 8 seconds
-		 * - 2 seconds for players to find port
-		 * - port position and opening is at castTime + duration
-		 */
-		const windowStart = flower.expectedInitialHitTime - 7000;
-		const windowEnd = flower.expectedInitialHitTime - 2000;
-		const necros = logData.players.filter((p) =>
-			p.profession.includes("Scourge"),
-		);
-
-		for (const maker of necros) {
-			const swells =
-				maker.rotation
-					?.find((r) => r.id === SKILLS.SAND_SWELL)
-					?.skills.filter((c) => {
-						const openTime = c.castTime + (c.duration || 0);
-						return openTime >= windowStart && openTime <= windowEnd;
-					}) || [];
-
-			for (const swell of swells) {
-				const castEnd = swell.castTime + (swell.duration || 0);
-
-				const pos1 = getPlayerPosition(maker.name, swell.castTime, logData);
-				const pos2 = getPlayerPosition(maker.name, castEnd, logData);
-
-				if (pos1 && pos2 && isValidPair(pos1 as Pos, pos2 as Pos)) {
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
 
 function getTerroristFails(
 	flower: ProcessedFlower,
@@ -190,11 +73,10 @@ function getTerroristFails(
 	return fails;
 }
 
-// --- MAIN EXPORT ---
-
 export function checkFlowerFailures(
 	phaseStart: number,
 	timings: readonly FlowerTime[],
+	encounterContext: CerusEncounterContext,
 	logData: DpsReportJson,
 	combatReplayDecorations?: DecorationRendering[],
 ): FlowerMechanicsResult {
@@ -264,10 +146,7 @@ export function checkFlowerFailures(
 			...getTerroristFails(flower, allTerroristPuddles, logData),
 		);
 
-		// 3) Validate Portal
-		const isPortalValid = validatePortal(flower, logData);
-
-		// 4) Process Hits
+		// 3) Process Hits
 		const playerState = new Map<
 			string,
 			{ initialHit: boolean; poolTick: boolean; death: boolean }
@@ -315,8 +194,11 @@ export function checkFlowerFailures(
 			}
 		}
 
-		// 5) Compile Fails (Forgive everyone if portal failed)
-		if (isPortalValid) {
+		// 4) Compile Fails (Forgive everyone if portal failed)
+		if (
+			flower.hasPortal &&
+			getValidPortal(encounterContext, flower.portalId, "flower")
+		) {
 			for (const [actor, state] of playerState.entries()) {
 				if (state.initialHit || state.poolTick) {
 					flowerFails.push({

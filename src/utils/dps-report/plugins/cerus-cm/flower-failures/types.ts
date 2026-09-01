@@ -1,13 +1,14 @@
+import type { FlowerPortalId } from "../encounter-context/types";
+
 export type Pos = readonly [number, number];
 
 type Portal = {
-	type: "chrono" | "scourge";
-	portalFrom: Pos;
-	portalTo?: Pos[];
+	hasPortal: true;
+	portalId: FlowerPortalId;
 };
 
 type NoPortal = {
-	type: "none";
+	hasPortal: false;
 };
 
 type BaseFlower = {
