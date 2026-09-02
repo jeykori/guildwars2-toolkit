@@ -13,19 +13,26 @@ export interface ExpectedPortal {
 	openWindow: number;
 	from: {
 		location: readonly [number, number];
-		radius: number;
+		radius: number; // The maximum/outer radius
+		innerRadius?: number; // The minimum/inner radius (creates the donut)
 	};
 	/** Minimum distance betweeen portals */
 	minDistance?: number;
 	to?: {
 		location: Array<readonly [number, number]>;
-		radius: number;
+		radius: number; // The maximum/outer radius
+		innerRadius?: number; // The minimum/inner radius (creates the donut)
 	};
 	mechanicRequirements: {
 		mechanic: CerusMechanic;
 		// [earliest acceptable open time, latest acceptable open time] (seconds into phase)
 		validOpenWindow: readonly [number, number];
 	}[];
+	/**
+	 * Optional manual cutoff in seconds.
+	 * If the phase duration is less than this value, the portal is forgiven and skipped.
+	 */
+	phasePushForgiveness?: number;
 }
 
 export interface RawPortalCast {

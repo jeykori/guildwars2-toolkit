@@ -40,3 +40,9 @@ export const FLOWER_PORTAL_IDS = {
 		2: "p4-2_chr_flower",
 	},
 } as const;
+
+export const FLOWER_PORTAL_SKILLS = {
+	PORTAL_ENTRE: 10197,
+	PORTAL_EXEUNT: 10199,
+	SAND_SWELL: 42917,
+};

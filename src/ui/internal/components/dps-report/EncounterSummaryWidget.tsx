@@ -46,7 +46,7 @@ export function EncounterSummaryWidgets({
 									value={
 										aggregatedSquadMetrics[metric.id] ?? {
 											dataType: "scalar",
-											value: -1, // shouldn't happen
+											value: NaN,
 										}
 									}
 									filteredLogs={filteredLogs}

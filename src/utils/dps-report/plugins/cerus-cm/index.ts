@@ -5,11 +5,19 @@ import {
 	flowerFailuresMetrics,
 	parseFlowerFailuresMetric,
 } from "./flower-failures";
+import {
+	aggregatePortalPerformance,
+	parsePortalPerformanceMetric,
+} from "./portal-performance";
 import type { CerusAggregatedDetails, CerusPlugin } from "./types";
 
 const dictionary = [dpsCheckMetric, ...flowerFailuresMetrics];
-const parsers = [parseDpsCheckMetric, parseFlowerFailuresMetric];
-const aggregators = [aggregateFlowerFailures];
+const parsers = [
+	parseDpsCheckMetric,
+	parsePortalPerformanceMetric,
+	parseFlowerFailuresMetric,
+];
+const aggregators = [aggregatePortalPerformance, aggregateFlowerFailures];
 
 export const cerusCmPlugin = {
 	triggerId: 25989,

@@ -247,10 +247,8 @@ export const parseFlowerFailuresMetric: CerusSubParser = (
 	});
 
 	// 2. Safely merge it into the root encounter details
-	mapped.encounterDetails = mapped.encounterDetails || {};
-	const details = mapped.encounterDetails as CerusLogDetails;
-
-	details.flowerFailures = flowerFailures;
+	mapped.encounterDetails = mapped.encounterDetails ??= {};
+	mapped.encounterDetails.flowerFailures = flowerFailures;
 
 	return mapped;
 };

@@ -78,6 +78,7 @@ const p1: ExpectedPortal[] = [
 				validOpenWindow: [66, 72],
 			},
 		],
+		phasePushForgiveness: 74,
 	},
 ];
 
@@ -90,7 +91,7 @@ const p2: ExpectedPortal[] = [
 		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
-		minDistance: 650,
+		minDistance: 450,
 		mechanicRequirements: [
 			{
 				mechanic: "rage",
@@ -130,7 +131,7 @@ const p2: ExpectedPortal[] = [
 			},
 			{
 				mechanic: "rage",
-				validOpenWindow: [57, 65],
+				validOpenWindow: [55.5, 65],
 			},
 		],
 	},
@@ -157,7 +158,7 @@ const p2: ExpectedPortal[] = [
 		openTime: 128,
 		openWindow: 5,
 		type: "scourge",
-		from: { location: spiral, radius: 600 },
+		from: { location: center, radius: 1000, innerRadius: 450 },
 		minDistance: 600,
 		mechanicRequirements: [
 			{
@@ -165,6 +166,7 @@ const p2: ExpectedPortal[] = [
 				validOpenWindow: [126, 132],
 			},
 		],
+		phasePushForgiveness: 134,
 	},
 ];
 
@@ -246,7 +248,7 @@ const p3: ExpectedPortal[] = [
 		mechanicRequirements: [
 			{
 				mechanic: "bad-collect",
-				validOpenWindow: [105, 98], // Quite a large window
+				validOpenWindow: [98, 105], // Quite a large window
 			},
 		],
 	},
@@ -278,7 +280,7 @@ const p3: ExpectedPortal[] = [
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [119, 124.9], // very tight
+				validOpenWindow: [119, 127], // very tight
 			},
 			{
 				mechanic: "flower",
@@ -306,7 +308,7 @@ const p3: ExpectedPortal[] = [
 		id: FLOWER_PORTAL_IDS.p3["9"],
 		description: "Malice after ad rage",
 		phase: "Phase 3",
-		openTime: 190,
+		openTime: 191,
 		openWindow: 5,
 		type: "chrono",
 		from: { location: spiral, radius: 450 },
@@ -314,7 +316,7 @@ const p3: ExpectedPortal[] = [
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [186, 194],
+				validOpenWindow: [186, 195],
 			},
 		],
 	},

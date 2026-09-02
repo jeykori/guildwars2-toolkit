@@ -34,7 +34,9 @@ export function ScalarMetricWidget({
 
 	if (value?.dataType === "scalar") {
 		numericValue = value.value;
-		formattedValue = (Math.round(numericValue * 10) / 10).toLocaleString();
+		formattedValue = Number.isNaN(numericValue)
+			? "-"
+			: (Math.round(numericValue * 10) / 10).toLocaleString();
 	} else if (value?.dataType === "rate") {
 		// Treat rates as percentages (0 to 100) for threshold evaluation
 		const percent = value.outOf > 0 ? (value.count / value.outOf) * 100 : 0;

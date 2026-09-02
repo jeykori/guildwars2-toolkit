@@ -3,6 +3,7 @@ import type {
 	AggregatedFlowerFailures,
 	FlowerFailures,
 } from "./flower-failures/types";
+import type { PortalPerformance } from "./portal-performance/types";
 
 export type CerusPhase =
 	| "Phase 1"
@@ -27,10 +28,12 @@ export interface CerusEncounterContext {
 
 export type CerusLogDetails = {
 	flowerFailures?: FlowerFailures;
+	portalPerformance?: PortalPerformance;
 };
 
 export type CerusAggregatedDetails = {
 	flowerFailures?: AggregatedFlowerFailures;
+	portalPerformance?: PortalPerformance;
 };
 
 export type CerusPlugin = EncounterPlugin<

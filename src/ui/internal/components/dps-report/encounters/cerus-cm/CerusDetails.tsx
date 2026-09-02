@@ -6,6 +6,7 @@ import { CerusPhaseThresholdsCard } from "./CerusPhaseThresholdsCard";
 import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
 import { FlowerFailGraph } from "./FlowerFailGraph";
 import { FlowerFailTable } from "./FlowerFailTable";
+import { PortalPerformanceTable } from "./PortalPerformanceTable";
 
 export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 	const { metrics, aggregatedSquadMetrics, filteredLogs } = props;
@@ -34,13 +35,17 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 							value={
 								aggregatedSquadMetrics[dpsMetric.id] ?? {
 									dataType: "scalar",
-									value: -1, // shouldn't happen
+									value: NaN,
 								}
 							}
 							filteredLogs={filteredLogs}
 						/>
 					</div>
 				)}
+			</div>
+
+			<div className="w-full">
+				<PortalPerformanceTable {...props} />
 			</div>
 
 			<div className="w-full">

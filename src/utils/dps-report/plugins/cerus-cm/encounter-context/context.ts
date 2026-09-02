@@ -1,14 +1,9 @@
 import type { DpsReportJson } from "../../../../../types/dps-report";
 import { getEuclideanDist, getPlayerPosition } from "../../../utils";
 import type { CerusEncounterContext, CerusPhase, PortalEvent } from "../types";
+import { FLOWER_PORTAL_SKILLS } from "./constants";
 import { FLOWER_STRAT_PORTALS } from "./flower-portals";
 import type { CerusMechanic, RawPortalCast } from "./types";
-
-const SKILLS = {
-	PORTAL_ENTRE: 10197,
-	PORTAL_EXEUNT: 10199,
-	SAND_SWELL: 42917,
-};
 
 export function getValidPortal(
 	context: CerusEncounterContext,
@@ -74,27 +69,43 @@ export function buildEncounterContext(
 				continue;
 			}
 
-			const p1NearFrom =
-				getEuclideanDist(raw.pos1, expected.from.location) <=
-				expected.from.radius * scale;
-			const p2NearFrom =
-				getEuclideanDist(raw.pos2, expected.from.location) <=
-				expected.from.radius * scale;
+			// Calculate distances for the 'from' check
+			const distP1From = getEuclideanDist(raw.pos1, expected.from.location);
+			const distP2From = getEuclideanDist(raw.pos2, expected.from.location);
 
+			// Validate 'from' using outer radius, and optionally inner radius (Donut)
+			const p1NearFrom =
+				distP1From <= expected.from.radius * scale &&
+				(!expected.from.innerRadius ||
+					distP1From >= expected.from.innerRadius * scale);
+
+			const p2NearFrom =
+				distP2From <= expected.from.radius * scale &&
+				(!expected.from.innerRadius ||
+					distP2From >= expected.from.innerRadius * scale);
+
+			// Validate 'to' logic
 			const checkOther = (
 				otherPos: readonly [number, number],
 				fromPos: readonly [number, number],
 			) => {
 				const { to: expectedTo, minDistance } = expected;
+
 				if (expectedTo) {
-					return expectedTo.location.some(
-						(target) =>
-							getEuclideanDist(otherPos, target) <= expectedTo.radius * scale,
-					);
+					return expectedTo.location.some((target) => {
+						const dist = getEuclideanDist(otherPos, target);
+						return (
+							dist <= expectedTo.radius * scale &&
+							(!expectedTo.innerRadius ||
+								dist >= expectedTo.innerRadius * scale)
+						);
+					});
 				}
+
 				if (minDistance) {
 					return getEuclideanDist(otherPos, fromPos) >= minDistance * scale;
 				}
+
 				return true;
 			};
 
@@ -143,9 +154,11 @@ function extractAllRawPortals(logData: DpsReportJson): RawPortalCast[] {
 
 	for (const maker of mesmers) {
 		const exeunts =
-			maker.rotation?.find((r) => r.id === SKILLS.PORTAL_EXEUNT)?.skills || [];
+			maker.rotation?.find((r) => r.id === FLOWER_PORTAL_SKILLS.PORTAL_EXEUNT)
+				?.skills || [];
 		const entres =
-			maker.rotation?.find((r) => r.id === SKILLS.PORTAL_ENTRE)?.skills || [];
+			maker.rotation?.find((r) => r.id === FLOWER_PORTAL_SKILLS.PORTAL_ENTRE)
+				?.skills || [];
 
 		for (const exeunt of exeunts) {
 			const entre = entres.filter((c) => c.castTime <= exeunt.castTime).at(-1);
@@ -176,7 +189,8 @@ function extractAllRawPortals(logData: DpsReportJson): RawPortalCast[] {
 
 	for (const maker of necros) {
 		const swells =
-			maker.rotation?.find((r) => r.id === SKILLS.SAND_SWELL)?.skills || [];
+			maker.rotation?.find((r) => r.id === FLOWER_PORTAL_SKILLS.SAND_SWELL)
+				?.skills || [];
 
 		for (const swell of swells) {
 			const openTime = swell.castTime + (swell.duration || 0);
