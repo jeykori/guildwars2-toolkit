@@ -1,6 +1,8 @@
 import { useMemo } from "react";
-import { CERUS_CM_PLUGIN_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/dps-check";
+import { CERUS_CM_DPS_CHECK_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/dps-check";
+import { CERUS_CM_MALICE_FAILS_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/malice-failures";
 import { ScalarMetricWidget } from "../../widgets/ScalarMetricWidget";
+import { TopPlayersMetricWidget } from "../../widgets/TopPlayersMetricsWidget";
 import type { PluginEncounterProps } from "../types";
 import { CerusPhaseThresholdsCard } from "./CerusPhaseThresholdsCard";
 import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
@@ -9,12 +11,23 @@ import { FlowerFailTable } from "./FlowerFailTable";
 import { PortalPerformanceTable } from "./PortalPerformanceTable";
 
 export const CerusDetails = (props: PluginEncounterProps<25989>) => {
-	const { metrics, aggregatedSquadMetrics, filteredLogs } = props;
+	const { metrics, aggregatedSquadMetrics, filteredLogs, aggregatedPlayers } =
+		props;
 
 	const dpsMetric = useMemo(() => {
-		const metric = metrics.find((m) => m.id === CERUS_CM_PLUGIN_ID);
+		const metric = metrics.find((m) => m.id === CERUS_CM_DPS_CHECK_ID);
 
 		if (metric?.displayType !== "SCALAR") {
+			return null;
+		}
+
+		return metric;
+	}, [metrics]);
+
+	const maliceMetric = useMemo(() => {
+		const metric = metrics.find((m) => m.id === CERUS_CM_MALICE_FAILS_ID);
+
+		if (metric?.displayType !== "TOP_PLAYERS") {
 			return null;
 		}
 
@@ -39,6 +52,15 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 								}
 							}
 							filteredLogs={filteredLogs}
+						/>
+					</div>
+				)}
+
+				{maliceMetric && (
+					<div className="w-full sm:w-60">
+						<TopPlayersMetricWidget
+							metric={maliceMetric}
+							aggregatedPlayers={aggregatedPlayers}
 						/>
 					</div>
 				)}

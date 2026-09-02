@@ -26,7 +26,7 @@ export const FLOWER_PORTAL_IDS = {
 	},
 	p3: {
 		1: "p3-1_scg_rage",
-		2: "p3-2_chr_rage",
+		2: "p3-2_chr_malice-rage",
 		3: "p3-3_scg_double-flower-1",
 		4: "p3-4_chr_double-flower-2",
 		5: "p3-5_scg_bad-collect",
@@ -37,7 +37,7 @@ export const FLOWER_PORTAL_IDS = {
 	},
 	p4: {
 		1: "p4-1_scg_flower",
-		2: "p4-2_chr_flower",
+		2: "p4-2_chr_flower-malice",
 	},
 } as const;
 
@@ -45,4 +45,13 @@ export const FLOWER_PORTAL_SKILLS = {
 	PORTAL_ENTRE: 10197,
 	PORTAL_EXEUNT: 10199,
 	SAND_SWELL: 42917,
+};
+
+export const CERUS_CM_PHASES = {
+	FULL_FIGHT: "Full Fight",
+	P1: "Phase 1",
+	P2: "Phase 2",
+	P3: "Phase 3",
+	P50_10: "50%-10%",
+	ENRAGED_SMASH: "Enraged Smash",
 };

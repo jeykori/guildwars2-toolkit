@@ -1,7 +1,7 @@
 import type { CustomMetricDefinition, ThresholdStep } from "../../../../types";
 import type { CerusSubParser } from "./types";
 
-export const CERUS_CM_PLUGIN_ID = "25989.cerus-cm.dps-check";
+export const CERUS_CM_DPS_CHECK_ID = "25989.cerus-cm.dps-check";
 
 export const CERUS_CM_THRESHOLDS = {
 	cm: {
@@ -48,7 +48,7 @@ const generateThresholds = (type: "cm" | "lcm"): ThresholdStep[] => {
 };
 
 export const dpsCheckMetric: CustomMetricDefinition = {
-	id: CERUS_CM_PLUGIN_ID,
+	id: CERUS_CM_DPS_CHECK_ID,
 	name: "Phase 3 DPS",
 	aggregation: "AVG",
 	displayType: "SCALAR",
@@ -104,7 +104,7 @@ export const parseDpsCheckMetric: CerusSubParser = (
 		const durationSec = (targetPhase.end - targetPhase.start) / 1000;
 		const squadDps = durationSec > 0 ? totalDamage / durationSec : 0;
 
-		mapped.customSummaryMetrics[CERUS_CM_PLUGIN_ID] = {
+		mapped.customSummaryMetrics[CERUS_CM_DPS_CHECK_ID] = {
 			dataType: "scalar",
 			value: squadDps,
 		};

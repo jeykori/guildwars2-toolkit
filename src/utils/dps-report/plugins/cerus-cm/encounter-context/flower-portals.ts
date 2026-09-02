@@ -189,17 +189,21 @@ const p3: ExpectedPortal[] = [
 	},
 	{
 		id: FLOWER_PORTAL_IDS.p3["2"],
-		description: "Out of Rage",
+		description: "Out of Rage + Malice",
 		phase: "Phase 3",
-		openTime: 40,
+		openTime: 43,
 		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [circle], radius: 600 },
 		mechanicRequirements: [
 			{
+				mechanic: "malice",
+				validOpenWindow: [36, 44.3], // quite tight
+			},
+			{
 				mechanic: "rage",
-				validOpenWindow: [36, 44],
+				validOpenWindow: [40, 50],
 			},
 		],
 	},

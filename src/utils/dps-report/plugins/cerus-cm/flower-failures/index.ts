@@ -3,7 +3,10 @@ import type {
 	DpsReportJson,
 } from "../../../../../types";
 import type { DecorationRendering } from "../../../../../types/dps-report/elite-insights/combat-replay-json";
-import { FLOWER_PORTAL_IDS } from "../encounter-context/constants";
+import {
+	CERUS_CM_PHASES,
+	FLOWER_PORTAL_IDS,
+} from "../encounter-context/constants";
 import type {
 	CerusEncounterContext,
 	CerusLogDetails,
@@ -16,11 +19,6 @@ import type {
 	FlowerTime,
 } from "./types";
 import { checkFlowerFailures } from "./util";
-
-const PHASE_FULL_FIGHT = "Full Fight";
-const PHASE_3 = "Phase 3";
-const PHASE_50_10 = "50%-10%";
-const PHASE_ENRAGED_SMASH = "Enraged Smash";
 
 /** Seconds into P3 */
 const p3Timings = [
@@ -185,10 +183,10 @@ export const parseFlowerFailuresMetric: CerusSubParser = (
 			: p50_10Result;
 
 	const toInject = [
-		[PHASE_FULL_FIGHT, allResults],
-		[PHASE_3, allResults],
-		[PHASE_50_10, p50_10Result],
-		[PHASE_ENRAGED_SMASH, sub10Result],
+		[CERUS_CM_PHASES.FULL_FIGHT, allResults],
+		[CERUS_CM_PHASES.P3, allResults],
+		[CERUS_CM_PHASES.P50_10, p50_10Result],
+		[CERUS_CM_PHASES.ENRAGED_SMASH, sub10Result],
 	] as const;
 
 	// 1. Build a local dictionary to satisfy TypeScript
@@ -302,8 +300,8 @@ const check50_10FlowerFailures = (
 	combatReplayDecorations?: DecorationRendering[],
 ) => {
 	const p3Start =
-		logData.phases.find((p) => p.name === PHASE_50_10)?.start ??
-		logData.phases.find((p) => p.name === PHASE_3)?.start;
+		logData.phases.find((p) => p.name === CERUS_CM_PHASES.P50_10)?.start ??
+		logData.phases.find((p) => p.name === CERUS_CM_PHASES.P3)?.start;
 
 	if (!p3Start) return null;
 
@@ -322,7 +320,7 @@ const checkSub10FlowerFailures = (
 	combatReplayDecorations?: DecorationRendering[],
 ) => {
 	const p3Start = logData.phases.find(
-		(p) => p.name === PHASE_ENRAGED_SMASH,
+		(p) => p.name === CERUS_CM_PHASES.ENRAGED_SMASH,
 	)?.start;
 
 	if (!p3Start) return null;

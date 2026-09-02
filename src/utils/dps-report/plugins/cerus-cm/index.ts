@@ -6,16 +6,25 @@ import {
 	parseFlowerFailuresMetric,
 } from "./flower-failures";
 import {
+	maliceFailuresMetric,
+	parseMaliceFailuresMetric,
+} from "./malice-failures";
+import {
 	aggregatePortalPerformance,
 	parsePortalPerformanceMetric,
 } from "./portal-performance";
 import type { CerusAggregatedDetails, CerusPlugin } from "./types";
 
-const dictionary = [dpsCheckMetric, ...flowerFailuresMetrics];
+const dictionary = [
+	dpsCheckMetric,
+	...flowerFailuresMetrics,
+	maliceFailuresMetric,
+];
 const parsers = [
 	parseDpsCheckMetric,
 	parsePortalPerformanceMetric,
 	parseFlowerFailuresMetric,
+	parseMaliceFailuresMetric,
 ];
 const aggregators = [aggregatePortalPerformance, aggregateFlowerFailures];
 
