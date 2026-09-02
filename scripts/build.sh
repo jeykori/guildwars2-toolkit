@@ -4,6 +4,9 @@ set -e
 echo "🧹 Cleaning dist folder..."
 rm -rf dist
 
+# WORKAROUND: Hide sideEffects from Bun during the build
+npm pkg delete sideEffects
+
 echo "⚡ Building JavaScript with Bun..."
 
 # Build Utils
@@ -21,6 +24,9 @@ bun build ./src/ui/index.ts \
   --format esm \
   --target browser \
   --packages external
+
+# WORKAROUND: Restore sideEffects for downstream consumers
+npm pkg set sideEffects=false --json
 
 echo "📝 Generating Backend TypeScript declarations..."
 bunx tsc --project tsconfig.build.utils.json

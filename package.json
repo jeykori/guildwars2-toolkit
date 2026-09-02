@@ -1,6 +1,6 @@
 {
 	"name": "@jeykori/guildwars2-toolkit",
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeykori/guildwars2-toolkit.git"
@@ -14,7 +14,6 @@
 		"access": "public"
 	},
 	"type": "module",
-	"sideEffects": false,
 	"scripts": {
 		"dev": "cd playground && bun dev",
 		"build": "bash scripts/build.sh",
@@ -74,5 +73,6 @@
 		"tailwindcss": {
 			"optional": true
 		}
-	}
+	},
+	"sideEffects": false
 }
