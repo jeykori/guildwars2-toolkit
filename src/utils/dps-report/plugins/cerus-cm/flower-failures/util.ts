@@ -197,7 +197,7 @@ export function checkFlowerFailures(
 		// 4) Compile Fails (Forgive everyone if portal failed)
 		if (
 			flower.hasPortal &&
-			getValidPortal(encounterContext, flower.portalId, "flower")
+			getValidPortal(encounterContext, flower.portalId, ["flower"]).isValid
 		) {
 			for (const [actor, state] of playerState.entries()) {
 				if (state.initialHit || state.poolTick) {

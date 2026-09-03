@@ -1,4 +1,5 @@
 import type { EncounterPlugin } from "../../../../types";
+import type { CerusMechanic } from "./encounter-context/types";
 import type {
 	AggregatedFlowerFailures,
 	FlowerFailures,
@@ -20,6 +21,11 @@ export interface PortalEvent {
 	closeTime: number;
 	locationFrom: readonly [number, number];
 	locationTo: readonly [number, number];
+	mechanics: {
+		mechanic: CerusMechanic;
+		expectedHitTime: number;
+		validOpenWindow: readonly [number, number];
+	}[];
 }
 
 export interface CerusEncounterContext {

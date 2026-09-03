@@ -8,35 +8,37 @@ export interface ExpectedPortal {
 	description: string;
 	phase: CerusPhase;
 	type: "scourge" | "chrono";
+
+	/**
+	 * The general baseline for when we expect the portal.
+	 * Used for searching the log for a matching cast.
+	 */
 	openTime: number;
-	/** Variance in seconds */
-	openWindow: number;
 	from: {
 		location: readonly [number, number];
-		radius: number; // The maximum/outer radius
-		innerRadius?: number; // The minimum/inner radius (creates the donut)
+		radius: number;
+		innerRadius?: number;
 	};
-	/** Minimum distance betweeen portals */
 	minDistance?: number;
 	to?: {
 		location: Array<readonly [number, number]>;
-		radius: number; // The maximum/outer radius
-		innerRadius?: number; // The minimum/inner radius (creates the donut)
+		radius: number;
+		innerRadius?: number;
 	};
+
 	mechanicRequirements: {
 		mechanic: CerusMechanic;
-		// [earliest acceptable open time, latest acceptable open time] (seconds into phase)
-		validOpenWindow: readonly [number, number];
+		expectedCastTime: number;
+
+		// Optional overrides in case a specific strat requires opening earlier/later
+		bufferBeforeHit?: number; // defaults to 1 (second)
+		bufferAfterHit?: number; // defaults to 1 (second)
 	}[];
+
 	/**
-	 * Optional manual cutoff in seconds.
-	 * Number: If the phase duration is less than this value, the portal is forgiven and skipped.
-	 * ccPhase: Instead of using the current phase as the cutoff, use the ccPhase to determine the cutoff. Used for attacks that disappear once breakbar appears.
+	 * If present, uses the start of this phase to determine if the expected hit would occur. A portal is NOT needed if the expected hit is after this phase.
 	 */
-	phasePushForgiveness?: {
-		time: number;
-		ccPhase?: string;
-	};
+	phasePushForgiveness?: string;
 }
 
 export interface RawPortalCast {

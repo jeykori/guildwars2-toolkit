@@ -36,14 +36,13 @@ const p1: ExpectedPortal[] = [
 		description: "Malice after green",
 		phase: "Phase 1",
 		openTime: 20,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [square], radius: 450 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [16, 24],
+				expectedCastTime: 19,
 			},
 		],
 	},
@@ -52,14 +51,13 @@ const p1: ExpectedPortal[] = [
 		description: "Malice after walls",
 		phase: "Phase 1",
 		openTime: 46,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [square], radius: 450 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [42, 50],
+				expectedCastTime: 44,
 			},
 		],
 	},
@@ -68,20 +66,16 @@ const p1: ExpectedPortal[] = [
 		description: "Out of Rage",
 		phase: "Phase 1",
 		openTime: 68,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
 		minDistance: 650,
 		mechanicRequirements: [
 			{
 				mechanic: "rage",
-				validOpenWindow: [66, 72],
+				expectedCastTime: 66,
 			},
 		],
-		phasePushForgiveness: {
-			time: 74,
-			ccPhase: "Cerus Breakbar 1",
-		},
+		phasePushForgiveness: "Cerus Breakbar 1",
 	},
 ];
 
@@ -91,14 +85,13 @@ const p2: ExpectedPortal[] = [
 		description: "Out of Rage",
 		phase: "Phase 2",
 		openTime: 14,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
 		minDistance: 450,
 		mechanicRequirements: [
 			{
 				mechanic: "rage",
-				validOpenWindow: [12, 18],
+				expectedCastTime: 14,
 			},
 		],
 	},
@@ -107,14 +100,13 @@ const p2: ExpectedPortal[] = [
 		description: "Malice after walls",
 		phase: "Phase 2",
 		openTime: 39,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [square], radius: 450 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [35, 43],
+				expectedCastTime: 38.4,
 			},
 		],
 	},
@@ -123,18 +115,19 @@ const p2: ExpectedPortal[] = [
 		description: "Malice after collects + Out of Rage",
 		phase: "Phase 2",
 		openTime: 57,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [square], radius: 450 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [50, 58.6], // malice at 59
+				expectedCastTime: 54,
+				bufferBeforeHit: 0.7, // allow tigher window
 			},
 			{
 				mechanic: "rage",
-				validOpenWindow: [55.5, 65],
+				expectedCastTime: 60.3,
+				bufferAfterHit: 0.2, // allow tigher window
 			},
 		],
 	},
@@ -143,14 +136,13 @@ const p2: ExpectedPortal[] = [
 		description: "Malice after double walls",
 		phase: "Phase 2",
 		openTime: 106,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [square], radius: 450 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [102, 110],
+				expectedCastTime: 105.6,
 			},
 		],
 	},
@@ -159,20 +151,16 @@ const p2: ExpectedPortal[] = [
 		description: "Out of Rage",
 		phase: "Phase 2",
 		openTime: 128,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 1000, innerRadius: 450 },
 		minDistance: 600,
 		mechanicRequirements: [
 			{
 				mechanic: "rage",
-				validOpenWindow: [126, 132],
+				expectedCastTime: 127.6,
 			},
 		],
-		phasePushForgiveness: {
-			time: 134,
-			ccPhase: "Cerus Breakbar 2",
-		},
+		phasePushForgiveness: "Cerus Breakbar 2",
 	},
 ];
 
@@ -182,14 +170,13 @@ const p3: ExpectedPortal[] = [
 		description: "Out of Rage + wall bait",
 		phase: "Phase 3",
 		openTime: 10,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: heart, radius: 450 },
 		to: { location: [spiral], radius: 600 },
 		mechanicRequirements: [
 			{
 				mechanic: "rage",
-				validOpenWindow: [8, 14],
+				expectedCastTime: 9,
 			},
 		],
 	},
@@ -198,18 +185,19 @@ const p3: ExpectedPortal[] = [
 		description: "Out of Rage + Malice",
 		phase: "Phase 3",
 		openTime: 43,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [circle], radius: 600 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [36, 44.3], // quite tight
+				expectedCastTime: 39,
+				bufferBeforeHit: 0.7, // allow tigher window
 			},
 			{
 				mechanic: "rage",
-				validOpenWindow: [40, 50],
+				expectedCastTime: 45.7,
+				bufferAfterHit: 0.2, // allow tigher window
 			},
 		],
 	},
@@ -219,14 +207,13 @@ const p3: ExpectedPortal[] = [
 		description: "Double Flower 1",
 		phase: "Phase 3",
 		openTime: 55,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
 		minDistance: 650,
 		mechanicRequirements: [
 			{
 				mechanic: "flower",
-				validOpenWindow: [53, 58],
+				expectedCastTime: 54,
 			},
 		],
 	},
@@ -235,14 +222,13 @@ const p3: ExpectedPortal[] = [
 		description: "Double Flower 2",
 		phase: "Phase 3",
 		openTime: 62,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: heart, radius: 450 },
 		to: { location: [circle], radius: 600 },
 		mechanicRequirements: [
 			{
 				mechanic: "flower",
-				validOpenWindow: [58, 65],
+				expectedCastTime: 61.6,
 			},
 		],
 	},
@@ -251,14 +237,14 @@ const p3: ExpectedPortal[] = [
 		description: "Bad collect",
 		phase: "Phase 3",
 		openTime: 102,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
 		minDistance: 500,
 		mechanicRequirements: [
 			{
 				mechanic: "bad-collect",
-				validOpenWindow: [98, 105], // Quite a large window
+				expectedCastTime: 99,
+				bufferBeforeHit: 0.2, // allow tigher window
 			},
 		],
 	},
@@ -267,14 +253,13 @@ const p3: ExpectedPortal[] = [
 		description: "Short port out of Rage",
 		phase: "Phase 3",
 		openTime: 113,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [x, x_2], radius: 650 },
 		mechanicRequirements: [
 			{
 				mechanic: "rage",
-				validOpenWindow: [109, 117],
+				expectedCastTime: 113,
 			},
 		],
 	},
@@ -283,18 +268,19 @@ const p3: ExpectedPortal[] = [
 		description: "Fast Port",
 		phase: "Phase 3",
 		openTime: 123,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: center, radius: 450 },
 		to: { location: [x, x_2], radius: 650 },
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [119, 127], // very tight
+				expectedCastTime: 123,
+				bufferBeforeHit: 0.7, // allow tigher window
 			},
 			{
 				mechanic: "flower",
-				validOpenWindow: [123, 133],
+				expectedCastTime: 128.9,
+				bufferAfterHit: 0.3, // allow tigher window
 			},
 		],
 	},
@@ -303,14 +289,13 @@ const p3: ExpectedPortal[] = [
 		description: "Triangle flower",
 		phase: "Phase 3",
 		openTime: 145,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
 		minDistance: 650,
 		mechanicRequirements: [
 			{
 				mechanic: "flower",
-				validOpenWindow: [143, 148],
+				expectedCastTime: 144,
 			},
 		],
 	},
@@ -319,14 +304,13 @@ const p3: ExpectedPortal[] = [
 		description: "Malice after ad rage",
 		phase: "Phase 3",
 		openTime: 191,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: spiral, radius: 450 },
 		minDistance: 650,
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [186, 195],
+				expectedCastTime: 190.2,
 			},
 		],
 	},
@@ -339,14 +323,13 @@ const p4: ExpectedPortal[] = [
 		description: "Sub-10 (Scg)",
 		phase: "Enraged Smash",
 		openTime: 5,
-		openWindow: 5,
 		type: "scourge",
 		from: { location: heart, radius: 450 },
 		minDistance: 650,
 		mechanicRequirements: [
 			{
 				mechanic: "flower",
-				validOpenWindow: [3, 8],
+				expectedCastTime: 5.9,
 			},
 		],
 	},
@@ -355,18 +338,19 @@ const p4: ExpectedPortal[] = [
 		description: "Sub-10 (Chr)",
 		phase: "Enraged Smash",
 		openTime: 33,
-		openWindow: 5,
 		type: "chrono",
 		from: { location: heart, radius: 450 },
 		minDistance: 650,
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [30, 34.5], // quite tight
+				expectedCastTime: 30.9,
+				bufferBeforeHit: 0.7, // allow tigher window
 			},
 			{
 				mechanic: "flower",
-				validOpenWindow: [31, 39],
+				expectedCastTime: 35.9,
+				bufferAfterHit: 0.3, // allow tigher window
 			},
 		],
 	},

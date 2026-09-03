@@ -1,9 +1,61 @@
 import type { DpsReportJson } from "../../../../../types";
-import { FLOWER_PORTAL_SKILLS } from "../encounter-context/constants";
+import {
+	CERUS_MECHANIC_TIMINGS,
+	FLOWER_PORTAL_SKILLS,
+} from "../encounter-context/constants";
+import { getValidPortal } from "../encounter-context/context";
 import { FLOWER_STRAT_PORTALS } from "../encounter-context/flower-portals";
-import type { FlowerPortalId } from "../encounter-context/types";
+import type { CerusMechanic, FlowerPortalId } from "../encounter-context/types";
 import type { CerusLogDetails, CerusPlugin, CerusSubParser } from "../types";
 import type { PortalPerformance } from "./types";
+
+// Helper to quickly grab the duration for the hit time check
+const MECHANIC_DURATIONS: Record<CerusMechanic, number> = {
+	malice: CERUS_MECHANIC_TIMINGS.malice.durations.castToHit,
+	rage: CERUS_MECHANIC_TIMINGS.rage.durations.castToHit,
+	flower: CERUS_MECHANIC_TIMINGS.despair.durations.castToHit,
+	"bad-collect": CERUS_MECHANIC_TIMINGS.rage.durations.castToHit,
+};
+
+/**
+ * Evaluates if a portal is forgiven due to the group phasing the boss early.
+ * A portal is forgiven if the EARLIEST mechanic it serves hits at or after the phase ends.
+ */
+function isPortalForgiven(
+	expected: (typeof FLOWER_STRAT_PORTALS)[number],
+	currentPhase: DpsReportJson["phases"][0],
+	allPhases: DpsReportJson["phases"],
+): boolean {
+	// 1. Determine the effective end of the phase
+	let endOfPhaseMs = currentPhase.end;
+
+	if (expected.phasePushForgiveness) {
+		const pushPhase = allPhases.find(
+			(p) => p.name === expected.phasePushForgiveness,
+		);
+		if (pushPhase) {
+			endOfPhaseMs = pushPhase.start;
+		}
+	}
+
+	if (expected.mechanicRequirements.length === 0) {
+		return false;
+	}
+
+	// 2. Find the earliest hit time among all mechanics this portal is supposed to handle
+	const earliestHitTimeMs = Math.min(
+		...expected.mechanicRequirements.map((req) => {
+			return (
+				currentPhase.start +
+				req.expectedCastTime * 1000 +
+				MECHANIC_DURATIONS[req.mechanic]
+			);
+		}),
+	);
+
+	// 3. If the first mechanic hits at or after the phase effectively ended, the portal is forgiven
+	return earliestHitTimeMs >= endOfPhaseMs;
+}
 
 export const parsePortalPerformanceMetric: CerusSubParser = (
 	report,
@@ -41,45 +93,18 @@ export const parsePortalPerformanceMetric: CerusSubParser = (
 	for (const expected of FLOWER_STRAT_PORTALS) {
 		const phase = report.phases.find((p) => p.name === expected.phase);
 		if (!phase) continue;
-
 		// 1. Phase-Push Forgiveness Check
-		const { phasePushForgiveness } = expected;
-		// Determine the required cutoff threshold in milliseconds
-		const cutoffTime = phasePushForgiveness?.time ?? expected.openTime;
-		const cutoffMs = cutoffTime * 1000;
-
-		// Determine when the phase "ended" for the purpose of this mechanic
-		let endOfPhaseMs = phase.end;
-
-		if (phasePushForgiveness?.ccPhase) {
-			// Look for the specified CC phase in the log
-			const ccPhase = report.phases.find(
-				(p) => p.name === phasePushForgiveness.ccPhase,
-			);
-
-			if (ccPhase) {
-				// If it happened, the mechanic was skipped the moment the CC phase started
-				endOfPhaseMs = ccPhase.start;
-			}
+		if (isPortalForgiven(expected, phase, report.phases)) {
+			continue; // Group phased early, portal is forgiven.
 		}
 
-		// Calculate how long the phase lasted up until the "end" (either push or CC bar)
-		const effectivePhaseDurationMs = endOfPhaseMs - phase.start;
-
-		// If the group pushed the phase faster than the cutoff time, forgive and skip
-		if (effectivePhaseDurationMs < cutoffMs) {
-			continue; // Skip evaluating this portal/mechanic
-		}
-
-		// 2. Find the portal & designated player
-		const physicalPortal = context.portals.find((p) => p.id === expected.id);
+		// 2. Find the designated player
 		const account = getDesignatedPlayer(expected.type);
-
 		if (!account) {
-			continue; // No designated player found for this portal type
+			continue; // No designated player found in log
 		}
 
-		// 3. Initialize player stats straight on the root performance object
+		// 3. Initialize player stats
 		let playerStats = performance[account];
 		if (!playerStats) {
 			playerStats = {
@@ -103,26 +128,21 @@ export const parsePortalPerformanceMetric: CerusSubParser = (
 		playerStats.totalExpected += 1;
 		pStat.expected += 1;
 
-		const isPerfectPortal = expected.mechanicRequirements.every((req) => {
-			const minOpenMs = phase.start + req.validOpenWindow[0] * 1000;
-			const maxOpenMs = phase.start + req.validOpenWindow[1] * 1000;
+		// Extract the mechanics required by this specific blueprint
+		const expectedMechanics = expected.mechanicRequirements.map(
+			(r) => r.mechanic,
+		);
 
-			const isSuccess =
-				physicalPortal !== undefined &&
-				physicalPortal.openTime >= minOpenMs &&
-				physicalPortal.openTime <= maxOpenMs;
+		// Evaluate the portal using the discriminated union
+		const validation = getValidPortal(context, expected.id, expectedMechanics);
 
-			if (!isSuccess) {
-				pStat.missedMechanics.push(req.mechanic);
-			}
-
-			// .every() requires returning a boolean. Short-circuits on false.
-			return isSuccess;
-		});
-
-		if (isPerfectPortal) {
+		if (validation.isValid) {
 			playerStats.totalSuccessful += 1;
 			pStat.successful += 1;
+		} else {
+			// Because we passed expectedMechanics to getValidPortal, it inherently
+			// knows what was missed whether the portal was cast poorly OR completely missing.
+			pStat.missedMechanics.push(...validation.missedMechanics);
 		}
 	}
 

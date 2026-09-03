@@ -55,3 +55,38 @@ export const CERUS_CM_PHASES = {
 	P50_10: "50%-10%",
 	ENRAGED_SMASH: "Enraged Smash",
 };
+
+export const CERUS_MECHANIC_TIMINGS = {
+	malice: {
+		events: {
+			cast: "MalInt.C",
+			target: "MalInt.A",
+		},
+		durations: {
+			castToTarget: 1120,
+			targetToHit: 5000,
+			castToHit: 6120, // 1120 + 5000
+		},
+	},
+	rage: {
+		events: {
+			cast: "CryRage.C",
+		},
+		durations: {
+			castToHit: 5520,
+		},
+	},
+	despair: {
+		events: {
+			cast: "WailDesp.C",
+		},
+		durations: {
+			castToHit: 5600,
+		},
+	},
+} as const;
+
+export const PORTAL_LIFESPANS = {
+	chrono: 10000,
+	scourge: 8000,
+} as const;

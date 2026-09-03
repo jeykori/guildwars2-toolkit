@@ -45,13 +45,15 @@ export const checkMaliceFailures = (
 
 	for (const timing of timings) {
 		// 2. Validate portal if provided
-		const portal = timing.portalId
-			? getValidPortal(encounterContext, timing.portalId, "malice")
-			: null;
+		const portalResult = timing.portalId
+			? getValidPortal(encounterContext, timing.portalId, ["malice"])
+			: ({ isValid: false } as const);
 
-		if (timing.portalId && !portal) {
+		if (!portalResult.isValid) {
 			continue;
 		}
+
+		const { portal } = portalResult;
 
 		// 3. Define the target timing window (5 seconds before the expected drop)
 		const expectedTargetTimeMs = phaseStart + timing.time * 1000 - 5000;
