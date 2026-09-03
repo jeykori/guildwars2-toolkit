@@ -78,7 +78,10 @@ const p1: ExpectedPortal[] = [
 				validOpenWindow: [66, 72],
 			},
 		],
-		phasePushForgiveness: 74,
+		phasePushForgiveness: {
+			time: 74,
+			ccPhase: "Cerus Breakbar 1",
+		},
 	},
 ];
 
@@ -127,7 +130,7 @@ const p2: ExpectedPortal[] = [
 		mechanicRequirements: [
 			{
 				mechanic: "malice",
-				validOpenWindow: [50, 58.3], // malice at 59
+				validOpenWindow: [50, 58.6], // malice at 59
 			},
 			{
 				mechanic: "rage",
@@ -166,7 +169,10 @@ const p2: ExpectedPortal[] = [
 				validOpenWindow: [126, 132],
 			},
 		],
-		phasePushForgiveness: 134,
+		phasePushForgiveness: {
+			time: 134,
+			ccPhase: "Cerus Breakbar 2",
+		},
 	},
 ];
 
@@ -248,7 +254,7 @@ const p3: ExpectedPortal[] = [
 		openWindow: 5,
 		type: "scourge",
 		from: { location: center, radius: 450 },
-		minDistance: 650,
+		minDistance: 500,
 		mechanicRequirements: [
 			{
 				mechanic: "bad-collect",

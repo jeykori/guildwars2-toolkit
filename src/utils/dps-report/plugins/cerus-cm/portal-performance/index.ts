@@ -42,15 +42,33 @@ export const parsePortalPerformanceMetric: CerusSubParser = (
 		const phase = report.phases.find((p) => p.name === expected.phase);
 		if (!phase) continue;
 
-		const phaseDurationMs = phase.end - phase.start;
-
 		// 1. Phase-Push Forgiveness Check
-		// Use the manual phasePushForgiveness if defined, otherwise fallback to openTime
-		const cutoffTime = expected.phasePushForgiveness ?? expected.openTime;
+		const { phasePushForgiveness } = expected;
+		// Determine the required cutoff threshold in milliseconds
+		const cutoffTime = phasePushForgiveness?.time ?? expected.openTime;
 		const cutoffMs = cutoffTime * 1000;
 
-		if (phaseDurationMs < cutoffMs) {
-			continue; // Phase ended early. Skip grading entirely.
+		// Determine when the phase "ended" for the purpose of this mechanic
+		let endOfPhaseMs = phase.end;
+
+		if (phasePushForgiveness?.ccPhase) {
+			// Look for the specified CC phase in the log
+			const ccPhase = report.phases.find(
+				(p) => p.name === phasePushForgiveness.ccPhase,
+			);
+
+			if (ccPhase) {
+				// If it happened, the mechanic was skipped the moment the CC phase started
+				endOfPhaseMs = ccPhase.start;
+			}
+		}
+
+		// Calculate how long the phase lasted up until the "end" (either push or CC bar)
+		const effectivePhaseDurationMs = endOfPhaseMs - phase.start;
+
+		// If the group pushed the phase faster than the cutoff time, forgive and skip
+		if (effectivePhaseDurationMs < cutoffMs) {
+			continue; // Skip evaluating this portal/mechanic
 		}
 
 		// 2. Find the portal & designated player

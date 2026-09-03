@@ -30,9 +30,13 @@ export interface ExpectedPortal {
 	}[];
 	/**
 	 * Optional manual cutoff in seconds.
-	 * If the phase duration is less than this value, the portal is forgiven and skipped.
+	 * Number: If the phase duration is less than this value, the portal is forgiven and skipped.
+	 * ccPhase: Instead of using the current phase as the cutoff, use the ccPhase to determine the cutoff. Used for attacks that disappear once breakbar appears.
 	 */
-	phasePushForgiveness?: number;
+	phasePushForgiveness?: {
+		time: number;
+		ccPhase?: string;
+	};
 }
 
 export interface RawPortalCast {
