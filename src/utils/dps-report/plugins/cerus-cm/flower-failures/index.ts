@@ -234,10 +234,13 @@ export const parseFlowerFailuresMetric: CerusSubParser = (
 				pPhase.customSummaryMetrics[ID_FAILS] = {
 					dataType: "scalar",
 					value: playerFails.length,
+					tooltip: playerFails.map(({ flowerName }) => flowerName),
 				};
+
 				pPhase.customSummaryMetrics[ID_TERRORIST] = {
 					dataType: "scalar",
 					value: playerTerrorists.length,
+					tooltip: playerTerrorists.map(({ flowerName }) => flowerName),
 				};
 			}
 		});

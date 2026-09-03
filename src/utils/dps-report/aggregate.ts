@@ -80,7 +80,19 @@ function applyAggregationRules(
 				aggregatedValue = Math.min(...vals);
 			}
 
-			return { dataType: "scalar", value: aggregatedValue };
+			// Deduplicate tooltip lines using a Set
+			const tooltips = [...new Set(scalarVals.flatMap((m) => m.tooltip ?? []))];
+
+			const result: ScalarMetricValue = {
+				dataType: "scalar",
+				value: aggregatedValue,
+			};
+
+			if (tooltips.length > 0) {
+				result.tooltip = tooltips;
+			}
+
+			return result;
 		}
 
 		case "rate": {

@@ -1,6 +1,7 @@
 export type ScalarMetricValue = {
 	dataType: "scalar";
 	value: number;
+	tooltip?: string[];
 };
 
 export type RateMetricValue = {

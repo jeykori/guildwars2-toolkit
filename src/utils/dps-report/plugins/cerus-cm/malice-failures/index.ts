@@ -73,16 +73,17 @@ export const parseMaliceFailuresMetric: CerusSubParser = (
 		if (phaseIndex === -1 || !maliceFail.length) return;
 
 		mapped.players.forEach((player) => {
-			const failCount = maliceFail.filter(
+			const playerFail = maliceFail.filter(
 				({ actor }) => actor === player.characterName,
-			).length;
+			);
 
 			const pPhase = player.phases[phaseIndex];
 
-			if (pPhase && failCount > 0) {
+			if (pPhase && playerFail.length > 0) {
 				pPhase.customSummaryMetrics[CERUS_CM_MALICE_FAILS_ID] = {
 					dataType: "scalar",
-					value: failCount,
+					value: playerFail.length,
+					tooltip: playerFail.map(({ maliceName }) => maliceName),
 				};
 			}
 		});

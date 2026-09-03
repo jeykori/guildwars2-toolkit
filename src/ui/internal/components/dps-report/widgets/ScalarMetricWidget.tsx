@@ -31,12 +31,16 @@ export function ScalarMetricWidget({
 	// 1. Safely extract the raw number based on the dataType
 	let numericValue = 0;
 	let formattedValue = "0";
+	let metricTooltipLines: string[] = [];
 
 	if (value?.dataType === "scalar") {
 		numericValue = value.value;
 		formattedValue = Number.isNaN(numericValue)
 			? "-"
 			: (Math.round(numericValue * 10) / 10).toLocaleString();
+		if (value.tooltip) {
+			metricTooltipLines = value.tooltip;
+		}
 	} else if (value?.dataType === "rate") {
 		// Treat rates as percentages (0 to 100) for threshold evaluation
 		const percent = value.outOf > 0 ? (value.count / value.outOf) * 100 : 0;
@@ -45,11 +49,11 @@ export function ScalarMetricWidget({
 	}
 
 	// 2. Evaluate threshold using the extracted numeric value
-	const { color, description, tooltip } = evaluateThreshold(
-		numericValue,
-		metric.thresholds,
-		filteredLogs,
-	);
+	const {
+		color,
+		description,
+		tooltip: thresholdTooltip,
+	} = evaluateThreshold(numericValue, metric.thresholds, filteredLogs);
 
 	let bgStyle = "bg-card";
 	let borderStyle = "border-border";
@@ -101,14 +105,34 @@ export function ScalarMetricWidget({
 		</Card>
 	);
 
-	if (tooltip) {
+	const hasThresholdTooltip = !!thresholdTooltip;
+	const hasMetricTooltip = metricTooltipLines.length > 0;
+
+	if (hasThresholdTooltip || hasMetricTooltip) {
 		return (
 			<Tooltip>
-				{/* 2. Add h-full to the trigger, AND the wrapping div */}
 				<TooltipTrigger className="text-left cursor-help w-full h-full block">
 					<div className="h-full w-full">{cardContent}</div>
 				</TooltipTrigger>
-				<TooltipContent>{tooltip}</TooltipContent>
+				<TooltipContent>
+					<div className="flex flex-col gap-1">
+						{hasThresholdTooltip && (
+							<span className="font-semibold text-primary">
+								{thresholdTooltip}
+							</span>
+						)}
+
+						{hasThresholdTooltip && hasMetricTooltip && (
+							<div className="w-full h-px bg-border my-1" />
+						)}
+
+						{metricTooltipLines.map((line) => (
+							<span key={line} className="text-sm">
+								{line}
+							</span>
+						))}
+					</div>
+				</TooltipContent>
 			</Tooltip>
 		);
 	}
