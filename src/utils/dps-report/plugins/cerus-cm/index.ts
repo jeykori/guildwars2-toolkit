@@ -6,6 +6,7 @@ import {
 	parseFlowerFailuresMetric,
 } from "./flower-failures";
 import {
+	aggregateMaliceFailures,
 	maliceFailuresMetric,
 	parseMaliceFailuresMetric,
 } from "./malice-failures";
@@ -26,7 +27,11 @@ const parsers = [
 	parseFlowerFailuresMetric,
 	parseMaliceFailuresMetric,
 ];
-const aggregators = [aggregatePortalPerformance, aggregateFlowerFailures];
+const aggregators = [
+	aggregatePortalPerformance,
+	aggregateFlowerFailures,
+	aggregateMaliceFailures,
+];
 
 export const cerusCmPlugin = {
 	triggerId: 25989,

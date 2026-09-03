@@ -57,7 +57,7 @@ export const PortalPerformanceTable = ({
 	if (!tableRows.length) return null;
 
 	return (
-		<Card>
+		<Card size="sm">
 			<CardHeader>
 				<CardTitle>Portal Execution</CardTitle>
 				<CardDescription>
