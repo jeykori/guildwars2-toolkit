@@ -53,6 +53,7 @@ export type DpsReportJson = {
 type Target = {
 	id: number;
 	name: string;
+	firstAware: number;
 	finalHealth: number;
 	finalBarrier: number;
 	barrierPercent: number;

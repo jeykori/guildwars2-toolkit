@@ -28,7 +28,7 @@ const p2MaliceTimings = [
 		portalId: FLOWER_PORTAL_IDS.p2[2],
 	},
 	{
-		name: "P2-2",
+		name: "P2-2-rage",
 		time: 60,
 		portalId: FLOWER_PORTAL_IDS.p2[3],
 	},
@@ -41,17 +41,17 @@ const p2MaliceTimings = [
 
 const p3MaliceTimings = [
 	{
-		name: "P3-1",
+		name: "P3-1-rage",
 		time: 45,
 		portalId: FLOWER_PORTAL_IDS.p3[2],
 	},
 	{
-		name: "P3-2",
+		name: "P3-2-flower-circle",
 		time: 62,
 		dropLocation: { location: FLOWER_MARKERS.circle, radius: 450 },
 	},
 	{
-		name: "P3-3",
+		name: "P3-3-fast-port",
 		time: 129,
 		portalId: FLOWER_PORTAL_IDS.p3[7],
 	},
@@ -61,7 +61,7 @@ const p3MaliceTimings = [
 		failOnTarget: true,
 	},
 	{
-		name: "P3-4",
+		name: "P3-4-spiral",
 		time: 196,
 		portalId: FLOWER_PORTAL_IDS.p3[9],
 	},
@@ -130,14 +130,14 @@ export const parseMaliceFailuresMetric: CerusSubParser = (
 		[CERUS_CM_PHASES.ENRAGED_SMASH, sub10Result],
 	] as const;
 
-	toInject.forEach(([phaseName, failedActors]) => {
+	toInject.forEach(([phaseName, maliceFail]) => {
 		const phaseIndex = report.phases.findIndex((p) => p.name === phaseName);
-		if (phaseIndex === -1 || !failedActors.length) return;
+		if (phaseIndex === -1 || !maliceFail.length) return;
 
 		mapped.players.forEach((player) => {
 			// Count how many times this specific player failed in this phase
-			const failCount = failedActors.filter(
-				(actor) => actor === player.characterName,
+			const failCount = maliceFail.filter(
+				({ actor }) => actor === player.characterName,
 			).length;
 
 			const pPhase = player.phases[phaseIndex];

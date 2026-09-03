@@ -1,5 +1,6 @@
 export interface MaliceTime {
 	name: string;
+	/** Expected time of hit */
 	time: number;
 	/** For non-portal malice */
 	dropLocation?: {
