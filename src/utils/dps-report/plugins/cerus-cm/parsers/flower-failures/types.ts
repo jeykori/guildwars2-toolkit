@@ -1,4 +1,4 @@
-import type { FlowerPortalId } from "../encounter-context/types";
+import type { FlowerPortalId } from "../../encounter-context/types";
 
 export type Pos = readonly [number, number];
 

@@ -1,7 +1,7 @@
-import type { DpsReportJson } from "../../../../../types";
-import { getEuclideanDist } from "../../../utils";
-import { getValidPortal } from "../encounter-context/context";
-import type { CerusEncounterContext } from "../types";
+import type { DpsReportJson } from "../../../../../../types";
+import { getEuclideanDist } from "../../../../utils";
+import { getValidPortal } from "../../encounter-context/context";
+import type { CerusEncounterContext } from "../../types";
 import type { MaliceTime } from "./types";
 
 const MALICE_TARGET_ID = 25645;

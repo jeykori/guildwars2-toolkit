@@ -1,19 +1,19 @@
-import { dpsCheckMetric, parseDpsCheckMetric } from "./dps-check";
 import { buildEncounterContext } from "./encounter-context/context";
+import { dpsCheckMetric, parseDpsCheckMetric } from "./parsers/dps-check";
 import {
 	aggregateFlowerFailures,
 	flowerFailuresMetrics,
 	parseFlowerFailuresMetric,
-} from "./flower-failures";
+} from "./parsers/flower-failures";
 import {
 	aggregateMaliceFailures,
 	maliceFailuresMetric,
 	parseMaliceFailuresMetric,
-} from "./malice-failures";
+} from "./parsers/malice-failures";
 import {
 	aggregatePortalPerformance,
 	parsePortalPerformanceMetric,
-} from "./portal-performance";
+} from "./parsers/portal-performance";
 import type { CerusAggregatedDetails, CerusPlugin } from "./types";
 
 const dictionary = [

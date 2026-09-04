@@ -17,8 +17,8 @@ import type { AggregatedPlayer } from "../../../../../../types";
 import {
 	CERUS_FLOWERS,
 	type CerusFlowerName,
-} from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures";
-import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
+} from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/flower-failures";
+import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/flower-failures/types";
 import { useSortableData } from "../../../../hooks/useSortableData";
 import { SortableHeader } from "../../../shared/SortableHeader";
 import type { PluginEncounterProps } from "../types";

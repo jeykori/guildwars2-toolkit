@@ -1,4 +1,7 @@
-import type { CerusMechanic, FlowerPortalId } from "../encounter-context/types";
+import type {
+	CerusMechanic,
+	FlowerPortalId,
+} from "../../encounter-context/types";
 
 export interface PortalStat {
 	expected: number; // Number of times this specific portal was required

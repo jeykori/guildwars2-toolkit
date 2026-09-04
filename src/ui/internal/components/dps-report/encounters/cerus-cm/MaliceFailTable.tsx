@@ -21,7 +21,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MALICE_TIMINGS } from "../../../../../../utils/dps-report/plugins/cerus-cm/malice-failures/constants";
+import { MALICE_TIMINGS } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/malice-failures/constants";
 import type { PluginEncounterProps } from "../types";
 
 const PHASE_SEQUENCES = {

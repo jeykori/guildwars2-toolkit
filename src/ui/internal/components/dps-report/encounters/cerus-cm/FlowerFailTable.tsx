@@ -16,7 +16,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import type { AggregatedPlayer } from "../../../../../../types";
-import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
+import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/flower-failures/types";
 import { useSortableData } from "../../../../hooks/useSortableData";
 import { SortableHeader } from "../../../shared/SortableHeader";
 import type { PluginEncounterProps } from "../types";

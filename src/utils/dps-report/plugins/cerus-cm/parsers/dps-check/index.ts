@@ -1,5 +1,8 @@
-import type { CustomMetricDefinition, ThresholdStep } from "../../../../types";
-import type { CerusSubParser } from "./types";
+import type {
+	CustomMetricDefinition,
+	ThresholdStep,
+} from "../../../../../../types";
+import type { CerusSubParser } from "../../types";
 
 export const CERUS_CM_DPS_CHECK_ID = "25989.cerus-cm.dps-check";
 

@@ -6,7 +6,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import type { LogSummary } from "../../../../../../types";
-import { CERUS_CM_THRESHOLDS } from "../../../../../../utils/dps-report/plugins/cerus-cm/dps-check";
+import { CERUS_CM_THRESHOLDS } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/dps-check";
 
 interface Props {
 	filteredLogs: LogSummary[];

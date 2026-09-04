@@ -1,7 +1,7 @@
 import {
 	FLOWER_MARKERS,
 	FLOWER_PORTAL_IDS,
-} from "../encounter-context/constants";
+} from "../../encounter-context/constants";
 import type { MaliceTime } from "./types";
 
 const p1MaliceTimings = [

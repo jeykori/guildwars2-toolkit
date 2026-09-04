@@ -19,7 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/flower-failures/types";
+import type { FlowerFailMatrix } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/flower-failures/types";
 import type { PluginEncounterProps } from "../types";
 
 type FailKeys = Exclude<keyof FlowerFailMatrix, "flowerBreakdown">;

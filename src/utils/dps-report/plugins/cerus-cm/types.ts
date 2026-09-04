@@ -3,9 +3,9 @@ import type { CerusMechanic } from "./encounter-context/types";
 import type {
 	AggregatedFlowerFailures,
 	FlowerFailures,
-} from "./flower-failures/types";
-import type { MaliceFails } from "./malice-failures/types";
-import type { PortalPerformance } from "./portal-performance/types";
+} from "./parsers/flower-failures/types";
+import type { MaliceFails } from "./parsers/malice-failures/types";
+import type { PortalPerformance } from "./parsers/portal-performance/types";
 
 export type CerusPhase =
 	| "Phase 1"

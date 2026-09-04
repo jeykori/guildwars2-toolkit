@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { CERUS_CM_DPS_CHECK_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/dps-check";
-import { CERUS_CM_MALICE_FAILS_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/malice-failures";
+import { CERUS_CM_DPS_CHECK_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/dps-check";
+import { CERUS_CM_MALICE_FAILS_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/malice-failures";
 import { ScalarMetricWidget } from "../../widgets/ScalarMetricWidget";
 import { TopPlayersMetricWidget } from "../../widgets/TopPlayersMetricsWidget";
 import type { PluginEncounterProps } from "../types";
