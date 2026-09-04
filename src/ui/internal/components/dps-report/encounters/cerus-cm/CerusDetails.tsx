@@ -1,10 +1,8 @@
-import { useMemo } from "react";
-import { CERUS_CM_DPS_CHECK_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/dps-check";
-import { CERUS_CM_MALICE_FAILS_ID } from "../../../../../../utils/dps-report/plugins/cerus-cm/parsers/malice-failures";
-import { ScalarMetricWidget } from "../../widgets/ScalarMetricWidget";
-import { TopPlayersMetricWidget } from "../../widgets/TopPlayersMetricsWidget";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MetricWidget } from "../../widgets/MetricWidget";
 import type { PluginEncounterProps } from "../types";
 import { CerusPhaseThresholdsCard } from "./CerusPhaseThresholdsCard";
+import { DpsCheckTable } from "./DpsCheckTable";
 import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
 import { FlowerFailGraph } from "./FlowerFailGraph";
 import { FlowerFailTable } from "./FlowerFailTable";
@@ -12,59 +10,24 @@ import { MaliceFailTable } from "./MaliceFailTable";
 import { PortalPerformanceTable } from "./PortalPerformanceTable";
 
 export const CerusDetails = (props: PluginEncounterProps<25989>) => {
-	const { metrics, aggregatedSquadMetrics, filteredLogs, aggregatedPlayers } =
-		props;
-
-	const dpsMetric = useMemo(() => {
-		const metric = metrics.find((m) => m.id === CERUS_CM_DPS_CHECK_ID);
-
-		if (metric?.displayType !== "SCALAR") {
-			return null;
-		}
-
-		return metric;
-	}, [metrics]);
-
-	const maliceMetric = useMemo(() => {
-		const metric = metrics.find((m) => m.id === CERUS_CM_MALICE_FAILS_ID);
-
-		if (metric?.displayType !== "TOP_PLAYERS") {
-			return null;
-		}
-
-		return metric;
-	}, [metrics]);
+	const { metrics, filteredLogs } = props;
 
 	return (
 		<div className="flex flex-col items-start gap-6 w-full">
-			<div className="flex flex-col sm:flex-row items-stretch gap-6 w-full">
-				<div className="w-full sm:w-72">
+			<div className="flex flex-wrap gap-4 w-full items-stretch">
+				{/* First card: Fixed width, no shrink */}
+				<div className="w-full sm:w-72 shrink-0">
 					<CerusPhaseThresholdsCard filteredLogs={filteredLogs} />
 				</div>
 
-				{dpsMetric && (
-					<div className="w-full sm:w-60">
-						<ScalarMetricWidget
-							metric={dpsMetric}
-							value={
-								aggregatedSquadMetrics[dpsMetric.id] ?? {
-									dataType: "scalar",
-									value: NaN,
-								}
-							}
-							filteredLogs={filteredLogs}
-						/>
+				{metrics.map((metric) => (
+					<div
+						key={metric.id}
+						className="flex-1 min-w-46.25 max-w-full sm:max-w-65"
+					>
+						<MetricWidget metric={metric} {...props} />
 					</div>
-				)}
-
-				{maliceMetric && (
-					<div className="w-full sm:w-60">
-						<TopPlayersMetricWidget
-							metric={maliceMetric}
-							aggregatedPlayers={aggregatedPlayers}
-						/>
-					</div>
-				)}
+				))}
 			</div>
 
 			<div className="w-full">
@@ -75,17 +38,23 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 				<MaliceFailTable {...props} />
 			</div>
 
-			<div className="w-full">
-				<FlowerFailTable {...props} />
-			</div>
+			{/* 3. TABS: Heavy Data & 10-Player Tables */}
+			<Tabs defaultValue="dps" className="w-full space-y-6">
+				<TabsList>
+					<TabsTrigger value="dps">50%-10% 3 DPS Check</TabsTrigger>
+					<TabsTrigger value="flower-stats">Flower Statistics</TabsTrigger>
+				</TabsList>
 
-			<div className="w-full">
-				<FlowerBreakdownTable {...props} />
-			</div>
+				<TabsContent value="dps" className="">
+					<DpsCheckTable {...props} />
+				</TabsContent>
 
-			<div className="w-full overflow-hidden">
-				<FlowerFailGraph {...props} />
-			</div>
+				<TabsContent value="flower-stats" className="space-y-6">
+					<FlowerFailTable {...props} />
+					<FlowerBreakdownTable {...props} />
+					<FlowerFailGraph {...props} />
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 };

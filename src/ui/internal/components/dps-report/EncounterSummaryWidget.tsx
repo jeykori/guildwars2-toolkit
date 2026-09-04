@@ -4,8 +4,7 @@ import type {
 	LogSummary,
 	MetricValue,
 } from "../../../../types";
-import { ScalarMetricWidget } from "./widgets/ScalarMetricWidget";
-import { TopPlayersMetricWidget } from "./widgets/TopPlayersMetricsWidget";
+import { MetricWidget } from "./widgets/MetricWidget";
 
 interface EncounterSummaryWidgetsProps {
 	metrics: CustomMetricDefinition[];
@@ -14,13 +13,8 @@ interface EncounterSummaryWidgetsProps {
 	filteredLogs: LogSummary[];
 }
 
-export function EncounterSummaryWidgets({
-	metrics,
-	aggregatedSquadMetrics,
-	aggregatedPlayers,
-	filteredLogs,
-}: EncounterSummaryWidgetsProps) {
-	if (metrics.length === 0) return null;
+export function EncounterSummaryWidgets(props: EncounterSummaryWidgetsProps) {
+	if (props.metrics.length === 0) return null;
 
 	return (
 		<div className="space-y-4">
@@ -36,34 +30,9 @@ export function EncounterSummaryWidgets({
 
 			{/* Metrics Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-				{metrics.map((metric) => {
-					switch (metric.displayType) {
-						case "SCALAR":
-							return (
-								<ScalarMetricWidget
-									key={metric.id}
-									metric={metric}
-									value={
-										aggregatedSquadMetrics[metric.id] ?? {
-											dataType: "scalar",
-											value: NaN,
-										}
-									}
-									filteredLogs={filteredLogs}
-								/>
-							);
-						case "TOP_PLAYERS":
-							return (
-								<TopPlayersMetricWidget
-									key={metric.id}
-									metric={metric}
-									aggregatedPlayers={aggregatedPlayers}
-								/>
-							);
-						default:
-							return null;
-					}
-				})}
+				{props.metrics.map((metric) => (
+					<MetricWidget key={metric.id} metric={metric} {...props} />
+				))}
 			</div>
 		</div>
 	);

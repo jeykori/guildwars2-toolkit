@@ -2,7 +2,8 @@ import type {
 	CustomMetricDefinition,
 	ThresholdStep,
 } from "../../../../../../types";
-import type { CerusSubParser } from "../../types";
+import type { CerusLogDetails, CerusPlugin, CerusSubParser } from "../../types";
+import type { DpsCheck, DpsCheckRole } from "./types";
 
 export const CERUS_CM_DPS_CHECK_ID = "25989.cerus-cm.dps-check";
 
@@ -18,6 +19,19 @@ export const CERUS_CM_THRESHOLDS = {
 		firstGreen: 260000,
 	},
 };
+
+export const CERUS_CM_DPS_TARGETS = {
+	cm: {
+		dps: 24000,
+		boondps: 18500,
+		heal: 0,
+	},
+	lcm: {
+		dps: 29500,
+		boondps: 23000,
+		heal: 0,
+	},
+} as const satisfies Record<string, Record<DpsCheckRole, number>>;
 
 const generateThresholds = (type: "cm" | "lcm"): ThresholdStep[] => {
 	const t = CERUS_CM_THRESHOLDS[type];
@@ -64,10 +78,16 @@ export const dpsCheckMetric: CustomMetricDefinition = {
 };
 
 export const parseDpsCheckMetric: CerusSubParser = (
-	_report,
+	report,
 	_combatReplay,
 	mapped,
+	context,
 ) => {
+	// Only for CM/LCM
+	if (!report.isCM && !report.isLegendaryCM) {
+		return mapped;
+	}
+
 	// 1. Find the target phase index ("50%-10%" or "Phase 3" as fallback)
 	let targetPhaseIndex = mapped.phases.findIndex((p) => p.name === "50%-10%");
 	if (targetPhaseIndex === -1) {
@@ -76,8 +96,14 @@ export const parseDpsCheckMetric: CerusSubParser = (
 
 	if (targetPhaseIndex !== -1) {
 		const targetPhase = mapped.phases[targetPhaseIndex];
+		if (!targetPhase) return mapped;
 
-		if (!targetPhase) return mapped; // Safety check
+		// Initialize our specific log details object
+		mapped.encounterDetails ??= {};
+		mapped.encounterDetails.dpsCheck ??= {};
+
+		const mode = mapped.isLegendaryCM ? "lcm" : "cm";
+		const targets = CERUS_CM_DPS_TARGETS[mode];
 
 		// 2. Find target priorities for this phase that are MAIN or BLOCKING
 		const validTargetIndices = new Set<number>();
@@ -90,21 +116,42 @@ export const parseDpsCheckMetric: CerusSubParser = (
 		}
 
 		// 3. Sum the damage for these targets across all players
+		const durationSec = (targetPhase.end - targetPhase.start) / 1000;
 		let totalDamage = 0;
+
 		for (const player of mapped.players) {
 			const playerPhaseStats = player.phases[targetPhaseIndex];
-			if (!playerPhaseStats?.targets) continue;
+			let playerDamage = 0;
 
 			for (const tIndex of validTargetIndices) {
-				const targetStats = playerPhaseStats.targets[tIndex];
-				if (targetStats) {
-					totalDamage += targetStats.damage;
-				}
+				playerDamage += playerPhaseStats?.targets?.[tIndex]?.damage ?? 0;
+			}
+
+			totalDamage += playerDamage;
+
+			// 4. Calculate individual player DPS and populate details
+			if (durationSec > 0) {
+				const playerDps = playerDamage / durationSec;
+
+				const role: DpsCheckRole = context.roles.boondps.includes(
+					player.account,
+				)
+					? "boondps"
+					: context.roles.heal.includes(player.account)
+						? "heal"
+						: "dps";
+				const targetDps = targets[role];
+
+				mapped.encounterDetails.dpsCheck[player.account] = {
+					role,
+					dps: playerDps,
+					targetDps,
+					passed: playerDps >= targetDps,
+				};
 			}
 		}
 
-		// 4. Calculate DPS
-		const durationSec = (targetPhase.end - targetPhase.start) / 1000;
+		// 5. Calculate overall Squad DPS
 		const squadDps = durationSec > 0 ? totalDamage / durationSec : 0;
 
 		mapped.customSummaryMetrics[CERUS_CM_DPS_CHECK_ID] = {
@@ -114,4 +161,48 @@ export const parseDpsCheckMetric: CerusSubParser = (
 	}
 
 	return mapped;
+};
+
+export const aggregateDpsChecks: CerusPlugin["aggregateDetails"] = (
+	_players,
+	logs,
+) => {
+	const combinedDpsCheck: DpsCheck = {};
+	const counts: Record<string, number> = {};
+
+	for (const log of logs) {
+		const logDpsCheck = (log.encounterDetails as CerusLogDetails)?.dpsCheck;
+		if (!logDpsCheck) continue;
+
+		for (const [account, check] of Object.entries(logDpsCheck)) {
+			let target = combinedDpsCheck[account];
+			if (!target) {
+				target = {
+					role: check.role,
+					passed: false, // Calculated at the end
+					dps: 0,
+					targetDps: check.targetDps,
+				};
+				combinedDpsCheck[account] = target;
+			}
+
+			target.dps += check.dps;
+
+			// Safely initialize to 0 if undefined, then add 1
+			counts[account] = (counts[account] ?? 0) + 1;
+		}
+	}
+
+	// Calculate averages and final pass/fail state
+	for (const [account, target] of Object.entries(combinedDpsCheck)) {
+		// Safely fallback to 0
+		const count = counts[account] ?? 0;
+
+		if (count > 0) {
+			target.dps = target.dps / count;
+			target.passed = target.dps >= target.targetDps;
+		}
+	}
+
+	return { dpsCheck: combinedDpsCheck };
 };

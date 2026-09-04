@@ -73,6 +73,7 @@ type Player = {
 	combatReplayData: CombatData;
 	buffUptimes: BuffUptime[];
 	buffUptimesActive: BuffUptime[];
+	groupBuffsActive: Buffs[];
 	defenses: {
 		damageTaken: number;
 		downCount: number;
@@ -160,7 +161,16 @@ type Phase = PhaseMain | SubPhase;
  * Quickness: b1187
  * Alacrity: b30328
  */
-type BuffUptime = {
+type Buffs = {
+	id: number;
+	/** array of phases */
+	buffData: {
+		/** Average stacks for stacking, Percent for single */
+		generation: number;
+	}[];
+};
+
+type BuffUptime = Buffs & {
 	id: number;
 	/** array of phases */
 	buffData: {

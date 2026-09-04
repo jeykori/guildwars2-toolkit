@@ -71,8 +71,8 @@ export const PortalPerformanceTable = ({
 						<Table>
 							<TableHeader className="bg-muted/50">
 								<TableRow>
-									<TableHead className="w-full">Player</TableHead>
-									<TableHead>Overall</TableHead>
+									<TableHead className="w-full min-w-25">Player</TableHead>
+									<TableHead className="">Overall</TableHead>
 									{Object.keys(PHASE_SEQUENCES).map((phase) => (
 										<TableHead key={phase}>{phase}</TableHead>
 									))}

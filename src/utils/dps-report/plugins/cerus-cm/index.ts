@@ -1,5 +1,9 @@
 import { buildEncounterContext } from "./encounter-context/context";
-import { dpsCheckMetric, parseDpsCheckMetric } from "./parsers/dps-check";
+import {
+	aggregateDpsChecks,
+	dpsCheckMetric,
+	parseDpsCheckMetric,
+} from "./parsers/dps-check";
 import {
 	aggregateFlowerFailures,
 	flowerFailuresMetrics,
@@ -28,6 +32,7 @@ const parsers = [
 	parseMaliceFailuresMetric,
 ];
 const aggregators = [
+	aggregateDpsChecks,
 	aggregatePortalPerformance,
 	aggregateFlowerFailures,
 	aggregateMaliceFailures,
@@ -37,7 +42,7 @@ export const cerusCmPlugin = {
 	triggerId: 25989,
 	dictionary,
 	parseLog: (report, combatReplay, mapped) => {
-		const encounterContext = buildEncounterContext(report);
+		const encounterContext = buildEncounterContext(report, mapped);
 
 		parsers.forEach((parser) => {
 			mapped = parser(report, combatReplay, mapped, encounterContext);

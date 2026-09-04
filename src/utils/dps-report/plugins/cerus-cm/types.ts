@@ -1,5 +1,6 @@
 import type { EncounterPlugin } from "../../../../types";
 import type { CerusMechanic } from "./encounter-context/types";
+import type { DpsCheck } from "./parsers/dps-check/types";
 import type {
 	AggregatedFlowerFailures,
 	FlowerFailures,
@@ -30,16 +31,23 @@ export interface PortalEvent {
 
 export interface CerusEncounterContext {
 	phaseStarts: Partial<Record<CerusPhase, number>>;
+	/** Account names */
+	roles: {
+		heal: string[];
+		boondps: string[];
+	};
 	portals: PortalEvent[]; // Only contains successfully identified portals
 }
 
 export type CerusLogDetails = {
+	dpsCheck?: DpsCheck;
 	flowerFailures?: FlowerFailures;
 	maliceFails?: MaliceFails;
 	portalPerformance?: PortalPerformance;
 };
 
 export type CerusAggregatedDetails = {
+	dpsCheck?: DpsCheck;
 	flowerFailures?: AggregatedFlowerFailures;
 	maliceFails?: MaliceFails;
 	portalPerformance?: PortalPerformance;
