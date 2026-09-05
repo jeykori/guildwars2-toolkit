@@ -41,7 +41,7 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 			{/* 3. TABS: Heavy Data & 10-Player Tables */}
 			<Tabs defaultValue="dps" className="w-full space-y-6">
 				<TabsList>
-					<TabsTrigger value="dps">50%-10% 3 DPS Check</TabsTrigger>
+					<TabsTrigger value="dps">50%-10% DPS Check</TabsTrigger>
 					<TabsTrigger value="flower-stats">Flower Statistics</TabsTrigger>
 				</TabsList>
 
