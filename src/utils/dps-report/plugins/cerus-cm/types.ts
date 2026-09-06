@@ -7,6 +7,10 @@ import type {
 } from "./parsers/flower-failures/types";
 import type { MaliceFails } from "./parsers/malice-failures/types";
 import type { PortalPerformance } from "./parsers/portal-performance/types";
+import type {
+	AggregatedInsatiableHungerDetails,
+	InsatiableHungerDetails,
+} from "./insatiable-hunger/types";
 
 export type CerusPhase =
 	| "Phase 1"
@@ -44,6 +48,7 @@ export type CerusLogDetails = {
 	flowerFailures?: FlowerFailures;
 	maliceFails?: MaliceFails;
 	portalPerformance?: PortalPerformance;
+	insatiableHunger?: InsatiableHungerDetails;
 };
 
 export type CerusAggregatedDetails = {
@@ -51,6 +56,7 @@ export type CerusAggregatedDetails = {
 	flowerFailures?: AggregatedFlowerFailures;
 	maliceFails?: MaliceFails;
 	portalPerformance?: PortalPerformance;
+	insatiableHunger?: AggregatedInsatiableHungerDetails;
 };
 
 export type CerusPlugin = EncounterPlugin<

@@ -10,6 +10,11 @@ import {
 	parseFlowerFailuresMetric,
 } from "./parsers/flower-failures";
 import {
+	aggregateInsatiableHunger,
+	insatiableHungerDeletionMetric,
+	parseInsatiableHunger,
+} from "./insatiable-hunger";
+import {
 	aggregateMaliceFailures,
 	maliceFailuresMetric,
 	parseMaliceFailuresMetric,
@@ -24,18 +29,21 @@ const dictionary = [
 	dpsCheckMetric,
 	...flowerFailuresMetrics,
 	maliceFailuresMetric,
+	insatiableHungerDeletionMetric,
 ];
 const parsers = [
 	parseDpsCheckMetric,
 	parsePortalPerformanceMetric,
 	parseFlowerFailuresMetric,
 	parseMaliceFailuresMetric,
+	parseInsatiableHunger,
 ];
 const aggregators = [
 	aggregateDpsChecks,
 	aggregatePortalPerformance,
 	aggregateFlowerFailures,
 	aggregateMaliceFailures,
+	aggregateInsatiableHunger,
 ];
 
 export const cerusCmPlugin = {

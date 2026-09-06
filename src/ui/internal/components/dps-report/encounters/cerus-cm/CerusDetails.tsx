@@ -6,6 +6,7 @@ import { DpsCheckTable } from "./DpsCheckTable";
 import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
 import { FlowerFailGraph } from "./FlowerFailGraph";
 import { FlowerFailTable } from "./FlowerFailTable";
+import { InsatiableHungerTable } from "./InsatiableHungerTable";
 import { MaliceFailTable } from "./MaliceFailTable";
 import { PortalPerformanceTable } from "./PortalPerformanceTable";
 
@@ -32,6 +33,10 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 
 			<div className="w-full">
 				<PortalPerformanceTable {...props} />
+			</div>
+
+			<div className="w-full">
+				<InsatiableHungerTable {...props} />
 			</div>
 
 			<div className="w-full">

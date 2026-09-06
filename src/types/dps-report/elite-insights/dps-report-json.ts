@@ -59,6 +59,17 @@ type Target = {
 	barrierPercent: number;
 	healthPercentBurned: number;
 	combatReplayData: CombatData;
+	rotation: {
+		/** skill ID */
+		id: number;
+		skills: {
+			castTime: number;
+			duration: number;
+			timeGained: number;
+			quickness: number;
+		}[];
+	}[];
+	buffs?: TargetBuff[];
 };
 
 type Player = {
@@ -92,6 +103,12 @@ type Player = {
 			quickness: number;
 		}[];
 	}[];
+};
+
+export type TargetBuff = {
+	id: number;
+	states?: [number, number][];
+	statesPerSource?: Record<string, [number, number][]>;
 };
 
 type Dps = {
