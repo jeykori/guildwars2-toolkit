@@ -150,6 +150,8 @@ type Mechanic = {
 		id: number;
 		/** Player affected */
 		actor: string;
+		/** EI mechanic event weight; one when omitted for stack applications. */
+		weight?: number;
 	}[];
 };
 

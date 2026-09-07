@@ -7,6 +7,7 @@ import type {
 } from "../../../types/dps-report/elite-insights";
 import { mapDpsReport } from "../mapper";
 import {
+	aggregateInsatiableHunger,
 	CERUS_CM_HUNGER_DELETIONS_ID,
 	trackInsatiableHungerOrbs,
 } from "../plugins/cerus-cm/insatiable-hunger";
@@ -18,7 +19,6 @@ const tracked = trackInsatiableHungerOrbs(report, combatReplay);
 
 describe("Insatiable Hunger orb lifecycle", () => {
 	it("finds all five casts and all fifteen large orb decorations", () => {
-		expect(tracked.unassignedOrbs).toHaveLength(0);
 		expect(tracked.casts.map((cast) => cast.orbs.length)).toEqual([
 			3, 3, 3, 3, 3,
 		]);
@@ -121,11 +121,11 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		);
 	});
 
-	it("does not manufacture balance from ambiguous deletion candidates", () => {
+	it("conserves ambiguous units without manufacturing a deletion", () => {
 		expect(tracked.accounting).toMatchObject({
 			requiredUnits: 45,
-			playerInsatiableUnits: 35,
-			actorEmpoweredUnits: 1,
+			collectedUnits: 35,
+			missedUnits: 1,
 			deletedUnits: 6,
 			accountedUnits: 42,
 			unresolvedUnits: 3,
@@ -145,7 +145,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		expect(
 			tracked.casts.flatMap((cast) =>
 				cast.orbs
-					.filter((orb) => orb.outcome === "player-deleted")
+					.filter((orb) => orb.outcome === "deleted")
 					.map((orb) => ({
 						cast: cast.castTime,
 						orb: orb.index,
@@ -160,7 +160,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 
 		for (const cast of tracked.casts) {
 			for (const orb of cast.orbs) {
-				if (orb.outcome !== "player-deleted" || !orb.deletedBy) continue;
+				if (orb.outcome !== "deleted" || !orb.deletedBy) continue;
 				expect(orb.deletionEvidence).toMatchObject({
 					priorInsatiableConfirmed: true,
 					noTargetInsatiableApplication: true,
@@ -170,7 +170,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 				});
 				const delta = orb.deletedBy.time - orb.deletedBy.priorPickupTime;
 				expect(delta).toBeGreaterThanOrEqual(0);
-			expect(delta).toBeLessThanOrEqual(1_000);
+				expect(delta).toBeLessThanOrEqual(1_000);
 			}
 		}
 	});
@@ -179,13 +179,13 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		const finalOrb = tracked.casts.at(-1)?.orbs.at(-1);
 		if (!finalOrb) throw new Error("Fixture is missing the final orb");
 
-		expect(finalOrb.outcome).toBe("cerus-absorbed");
+		expect(finalOrb.outcome).toBe("missed");
 		expect(finalOrb.absorbedBy).toBe("Cerus");
 		expect(finalOrb.endTime).toBe(237470);
 		expect(finalOrb.empoweredTransitions).toEqual([
 			{
 				target: "Cerus",
-				source: "Cerus",
+				source: "Emp.A",
 				time: 237470,
 				stackDelta: 1,
 				assignedUnits: 1,
@@ -195,15 +195,12 @@ describe("Insatiable Hunger orb lifecycle", () => {
 
 	it("does not call causal deletion evidence an absorption without Empowered", () => {
 		const reportWithoutFinalEmpowered = structuredClone(report);
-		const cerus = reportWithoutFinalEmpowered.targets.find(
-			(target) => target.name === "Cerus",
+		const empowered = reportWithoutFinalEmpowered.mechanics.find(
+			(mechanic) => mechanic.name === "Emp.A",
 		);
-		const empowered = cerus?.buffs?.find((buff) => buff.id === 69550);
-		if (!empowered?.statesPerSource?.Cerus) {
-			throw new Error("Fixture is missing Cerus's final Empowered state");
-		}
-		empowered.statesPerSource.Cerus = empowered.statesPerSource.Cerus.filter(
-			([time]) => time !== 237470,
+		if (!empowered) throw new Error("Fixture is missing Emp.A mechanics");
+		empowered.mechanicsData = empowered.mechanicsData.filter(
+			(event) => event.time !== 237470,
 		);
 
 		const result = trackInsatiableHungerOrbs(
@@ -223,57 +220,34 @@ describe("Insatiable Hunger orb lifecycle", () => {
 
 	it("accepts a delayed actor Empowered transition after an orb ends", () => {
 		const delayedReport = structuredClone(report);
-		const cerus = delayedReport.targets.find((target) => target.name === "Cerus");
-		const empowered = cerus?.buffs?.find((buff) => buff.id === 69550);
-		const states = empowered?.statesPerSource?.Cerus;
-		if (!states) throw new Error("Fixture is missing Cerus's Empowered states");
-		const finalTransition = states.find(([time]) => time === 237470);
+		const empowered = delayedReport.mechanics.find(
+			(mechanic) => mechanic.name === "Emp.A",
+		);
+		const finalTransition = empowered?.mechanicsData.find(
+			(event) => event.time === 237470,
+		);
 		if (!finalTransition) {
-			throw new Error("Fixture is missing Cerus's final Empowered transition");
+			throw new Error("Fixture is missing Cerus's final Emp.A event");
 		}
-		finalTransition[0] += 500;
+		finalTransition.time += 500;
 
 		const result = trackInsatiableHungerOrbs(delayedReport, combatReplay);
 		const finalOrb = result.casts.at(-1)?.orbs.at(-1);
 		if (!finalOrb) throw new Error("Fixture is missing the final orb");
 
-		expect(finalOrb.outcome).toBe("cerus-absorbed");
+		expect(finalOrb.outcome).toBe("missed");
 		expect(finalOrb.empoweredTransitions).toContainEqual(
 			expect.objectContaining({ time: 237970, assignedUnits: 1 }),
 		);
 	});
 
-	it("retains Empowered transitions received by other encounter actors", () => {
+	it("retains only collect-related Emp.A transitions", () => {
 		expect(tracked.empoweredTransitions).toEqual([
 			{
-				target: "Embodiment of Regret (Permanent)",
-				source: "Embodiment of Regret (Permanent)",
-				time: 234637,
-				stackDelta: 5,
-			},
-			{
 				target: "Cerus",
-				source: "Embodiment of Regret (Permanent)",
-				time: 236709,
-				stackDelta: 1,
-			},
-			{
-				target: "Cerus",
-				source: "Embodiment of Regret (Permanent)",
-				time: 236710,
-				stackDelta: 4,
-			},
-			{
-				target: "Cerus",
-				source: "Cerus",
+				source: "Emp.A",
 				time: 237470,
 				stackDelta: 1,
-			},
-			{
-				target: "Cerus",
-				source: "Cerus",
-				time: 247475,
-				stackDelta: 2,
 			},
 		]);
 	});
@@ -288,8 +262,66 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		).toEqual({
 			dataType: "scalar",
 			value: 3,
-			tooltip: ["Set 2, orb 3: 3 unit(s)"],
+			tooltip: ["split-1: 3 unit(s)"],
 		});
+	});
+
+	it("copies Phase 3 deletion metrics into the equivalent 50%-10% phase", () => {
+		const phaseReport = structuredClone(report);
+		const phase3 = {
+			...report.phases[4]!,
+			name: "Phase 3",
+			start: 128714,
+			end: 247972,
+		};
+		phaseReport.phases = [
+			report.phases[0]!,
+			phase3,
+			{ ...phase3, name: "50%-10%" },
+		];
+
+		const mapped = mapDpsReport(phaseReport, combatReplay);
+		const player = mapped.players.find(
+			(candidate) => candidate.characterName === "Player 8",
+		);
+		const phase3Index = mapped.phases.findIndex(({ name }) => name === "Phase 3");
+		const p50Index = mapped.phases.findIndex(({ name }) => name === "50%-10%");
+		const phase3Metric =
+			player?.phases[phase3Index]?.customSummaryMetrics[
+				CERUS_CM_HUNGER_DELETIONS_ID
+			];
+
+		expect(phase3Metric).toEqual({
+			dataType: "scalar",
+			value: 3,
+			tooltip: ["p3-1_double-collect: 3 unit(s)"],
+		});
+		expect(
+			player?.phases[p50Index]?.customSummaryMetrics[
+				CERUS_CM_HUNGER_DELETIONS_ID
+			],
+		).toEqual(phase3Metric);
+	});
+
+	it("aggregates expected collects by selected phase across logs", () => {
+		const mapped = mapDpsReport(report, combatReplay);
+		const aggregated = aggregateInsatiableHunger(
+			[],
+			[
+				{ ...mapped, id: "first" },
+				{ ...mapped, id: "second" },
+			],
+			{ selectedPhaseNames: new Set(["Phase 1"]) },
+		);
+		const details = aggregated.insatiableHunger?.perLog;
+
+		expect(Object.keys(details ?? {})).toEqual(["first", "second"]);
+		for (const log of Object.values(details ?? {})) {
+			expect(log.collects.map((collect) => collect.name)).toEqual([
+				"p1-1_cerus",
+			]);
+			expect(log.accounting.requiredUnits).toBe(9);
+		}
 	});
 
 	it("does not attach decorations to an unrelated future cast", () => {
@@ -308,7 +340,6 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		);
 
 		expect(result.casts).toHaveLength(0);
-		expect(result.unassignedOrbs).toHaveLength(15);
 	});
 
 	it("recognizes the five-orb Split 2 cast from Empowered Gluttony", () => {
@@ -319,6 +350,15 @@ describe("Insatiable Hunger orb lifecycle", () => {
 
 		const splitReport: DpsReportJson = {
 			...report,
+			phases: [
+				...report.phases,
+				{
+					...report.phases[3]!,
+					name: "Split 2",
+					start: 250000,
+					end: 290000,
+				},
+			],
 			targets: [
 				...report.targets,
 				{
@@ -365,6 +405,5 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		const splitCast = result.casts.find((cast) => cast.skillId === 69538);
 
 		expect(splitCast?.orbs).toHaveLength(5);
-		expect(result.unassignedOrbs).toHaveLength(0);
 	});
 });

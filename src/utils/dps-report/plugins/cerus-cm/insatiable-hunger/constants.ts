@@ -1,7 +1,3 @@
-export const INSATIABLE_BUFF_ID = 70253;
-
-export const EMPOWERED_BUFF_ID = 69550;
-
 /** Each large orb requires three collection units to resolve normally. */
 export const ORB_REQUIRED_UNITS = 3;
 
@@ -14,9 +10,21 @@ export const LARGE_ORB_DECORATION_SIGNATURE = "Cir30rgba(0, 0, 0, 0.5)0";
  * five-orb batch, while complete normal casts produce three-orb batches. A
  * cast cut off by the encounter ending may have fewer visible decorations.
  */
-export const HUNGER_SKILL_IDS = [69538, 71224, 72261] as const;
+export const HUNGER_TARGET_IDS = [25989, -53, 25677] as const;
+
+export const HUNGER_SKILL_IDS = {
+	/** Normal casts create three large orbs. */
+	normal: [71224, 72261],
+	/** Empowered casts create five large orbs. */
+	empowered: [69538, 72321],
+} as const;
 
 export const INSATIABLE_APPLICATION_MECHANIC = "Ins.A";
+export const EMPOWERED_APPLICATION_MECHANIC = "Emp.A";
+export const RAGE_HIT_MECHANIC = "CryRage.H";
+
+export const EXPECTED_COLLECT_MATCH_TOLERANCE_MS = 3_000;
+export const COLLECT_SEARCH_PADDING_MS = 1_000;
 
 /**
  * A second orb touch within this window deletes both orbs. Replay positions
@@ -68,13 +76,6 @@ export const DELETION_ATTRIBUTION_MARGIN = 8;
 
 /** Orb/actor proximity used only to veto a player-deletion conclusion. */
 export const ACTOR_ORB_CONTACT_RADIUS = 50;
-
-/**
- * Confirmed stack applications can use the orb radius plus the player's
- * approximate hitbox and one-pixel replay rounding when reconciling a delayed
- * event away from an orb that was already deleted.
- */
-export const CONFIRMED_PICKUP_CONTACT_RADIUS = 55;
 
 /** Near-equal replay distances are retained as an explicit attribution issue. */
 // A replay sample is 300 ms apart; retain ambiguity only for positions that

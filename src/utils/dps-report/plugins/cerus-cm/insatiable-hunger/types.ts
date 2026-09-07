@@ -1,13 +1,45 @@
 export type InsatiableStackCounts = Record<string, number>;
 
+export type InsatiableCollectPhase =
+	| `Phase ${number}`
+	| `Split ${number}`;
+
+export type ExpectedPhaseCollect = {
+	name: string;
+	phase: `Phase ${number}`;
+	/** Seconds from the beginning of the phase. */
+	times: number[];
+};
+
+export type ExpectedSplitCollect = {
+	name: string;
+	phase: `Split ${number}`;
+};
+
+export type ExpectedCollect = ExpectedPhaseCollect | ExpectedSplitCollect;
+
+export type InsatiableHungerRawCast = {
+	source: string;
+	targetId: number;
+	skillId: number;
+	castTime: number;
+	endTime: number;
+	expectedOrbCount: 3 | 5;
+};
+
+export type InsatiableHungerRawCollect = {
+	name: string;
+	phase: InsatiableCollectPhase;
+	casts: InsatiableHungerRawCast[];
+	/** First cast -1 second through final cast end +1 second. */
+	searchWindow: [number, number];
+	expectedOrbCount: number;
+};
+
 export type InsatiableOrbOutcome =
-	| "player-collected"
-	| "player-deleted"
-	| "cerus-absorbed"
-	| "embodiment-absorbed"
-	| "phase-despawned"
-	| "mechanic-ended"
-	| "split-2-bug-despawn"
+	| "collected"
+	| "missed"
+	| "deleted"
 	| "unresolved";
 
 /** Why the solver refused to turn a missing unit into a deletion or absorb. */
@@ -18,7 +50,11 @@ export type InsatiableUnresolvedReason =
 	| "causal-contact-only"
 	| "actor-stack-partial-ledger"
 	| "actor-path-crossing-without-empowered"
-	| "late-insatiable-application";
+	| "late-insatiable-application"
+	| "phase-ended"
+	| "mechanic-ended"
+	| "split-2-bug-despawn"
+	| "missing-decoration";
 
 export type InsatiableOrbCollectionState =
 	| "untouched"
@@ -81,14 +117,11 @@ export type InsatiableDeletionEvidence = {
 
 export type InsatiableOrbAccounting = {
 	requiredUnits: number;
-	playerInsatiableUnits: number;
-	/** Directly observed Empowered stack transitions. */
-	actorEmpoweredUnits: number;
+	/** Units proven by Ins.A mechanic applications. */
+	collectedUnits: number;
+	/** Units proven by filtered Emp.A mechanic applications. */
+	missedUnits: number;
 	deletedUnits: number;
-	phaseDespawnedUnits: number;
-	mechanicEndedUnits: number;
-	/** Repeated zero-stack Split 2 decoration lifecycle without an actor stack. */
-	split2BugDespawnUnits: number;
 	unresolvedUnits: number;
 	accountedUnits: number;
 	isBalanced: boolean;
@@ -147,13 +180,38 @@ export type InsatiableHungerCast = {
 	skillId: number;
 	castTime: number;
 	endTime: number;
+	collectName: string;
+	phase: InsatiableCollectPhase;
+	expectedOrbCount: number;
 	orbs: InsatiableOrb[];
 };
 
+export type InsatiableCollectPlayerUnits = {
+	collectedUnits: number;
+	deletedUnits: number;
+};
+
+export type InsatiableHungerCollect = {
+	name: string;
+	phase: InsatiableCollectPhase;
+	castStarts: number[];
+	searchWindow: [number, number];
+	expectedOrbCount: number;
+	observedOrbCount: number;
+	orbs: InsatiableOrb[];
+	players: Record<string, InsatiableCollectPlayerUnits>;
+	collectedUnits: number;
+	missedUnits: number;
+	deletedUnits: number;
+	unresolvedUnits: number;
+	/** Portion of unresolvedUnits caused by absent LargeOrbs decorations. */
+	missingDecorationUnits: number;
+	conserved: boolean;
+};
+
 export type InsatiableHungerDetails = {
+	collects: InsatiableHungerCollect[];
 	casts: InsatiableHungerCast[];
-	/** Large-orb decorations that have no nearby Hunger cast in the log. */
-	unassignedOrbs: InsatiableOrb[];
 	/** Empowered transitions retained even when they do not match an orb. */
 	empoweredTransitions: InsatiableEmpoweredTransition[];
 	/** Insatiable applications that could not be assigned to one physical orb. */

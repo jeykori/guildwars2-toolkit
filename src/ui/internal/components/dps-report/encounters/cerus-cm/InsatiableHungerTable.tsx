@@ -27,13 +27,9 @@ import { PlayerNameCell } from "../../PlayerNameCell";
 import type { PluginEncounterProps } from "../types";
 
 const OUTCOME_LABELS: Record<InsatiableOrbOutcome, string> = {
-	"player-collected": "Collected",
-	"player-deleted": "Deleted by player",
-	"cerus-absorbed": "Cerus empowered",
-	"embodiment-absorbed": "Embodiment empowered",
-	"phase-despawned": "Phase despawned",
-	"mechanic-ended": "Mechanic ended",
-	"split-2-bug-despawn": "Split 2 bug despawn",
+	collected: "Collected",
+	deleted: "Deleted by player",
+	missed: "Missed (Empowered)",
 	unresolved: "Unresolved",
 };
 
@@ -46,6 +42,10 @@ const UNRESOLVED_REASON_LABELS: Record<InsatiableUnresolvedReason, string> = {
 	"actor-path-crossing-without-empowered":
 		"orb crossed actor path without an Empowered event",
 	"late-insatiable-application": "player application followed inferred contact",
+	"phase-ended": "phase ended before terminal evidence",
+	"mechanic-ended": "collect ended before terminal evidence",
+	"split-2-bug-despawn": "known Split 2 decoration despawn",
+	"missing-decoration": "expected large-orb decoration was absent",
 };
 
 const seconds = (milliseconds: number) =>
@@ -53,94 +53,11 @@ const seconds = (milliseconds: number) =>
 
 const shortLogId = (id: string) => id.split("-")[0] ?? id;
 
-const allOrbs = (details: InsatiableHungerDetails) => [
-	...details.casts.flatMap((cast) => cast.orbs),
-	...details.unassignedOrbs,
-];
-
-const getDespawnedUnits = (details: InsatiableHungerDetails) =>
-	details.accounting.phaseDespawnedUnits +
-	details.accounting.mechanicEndedUnits +
-	details.accounting.split2BugDespawnUnits;
+const allOrbs = (details: InsatiableHungerDetails) =>
+	details.casts.flatMap((cast) => cast.orbs);
 
 const getDeletedOrbCount = (details: InsatiableHungerDetails) =>
 	allOrbs(details).filter((orb) => orb.accounting.deletedUnits > 0).length;
-
-type PlayerInteractionRow = {
-	key: string;
-	player: Pick<
-		AggregatedPlayer,
-		"primaryName" | "primaryIconUrl" | "characters"
-	>;
-	pickups: number;
-	deletedOrbs: number;
-	deletedUnits: number;
-	logs: number;
-};
-
-const getPlayerInteractionRows = (
-	selectedLogs: SelectedLog[],
-	aggregatedPlayers: AggregatedPlayer[],
-) => {
-	const byPlayer = new Map<string, PlayerInteractionRow & { logIds: Set<string> }>();
-	const resolvePlayer = (name: string) =>
-		aggregatedPlayers.find(
-			(player) =>
-				player.primaryName === name ||
-				player.characters.some((character) => character.name === name),
-		);
-	for (const { log, details } of selectedLogs) {
-		for (const orb of allOrbs(details)) {
-			for (const pickup of orb.playerPickups) {
-				const identity = resolvePlayer(pickup.player);
-				const key = identity?.account ?? pickup.player;
-				const row = byPlayer.get(key) ?? {
-					key,
-					player: identity ?? {
-						primaryName: pickup.player,
-						characters: [],
-					},
-					pickups: 0,
-					deletedOrbs: 0,
-					deletedUnits: 0,
-					logs: 0,
-					logIds: new Set<string>(),
-				};
-				row.pickups += pickup.stackDelta;
-				row.logIds.add(log.id);
-				byPlayer.set(key, row);
-			}
-			if (orb.accounting.deletedUnits > 0 && orb.deletedBy) {
-				const identity = resolvePlayer(orb.deletedBy.player);
-				const key = identity?.account ?? orb.deletedBy.player;
-				const row = byPlayer.get(key) ?? {
-					key,
-					player: identity ?? {
-						primaryName: orb.deletedBy.player,
-						characters: [],
-					},
-					pickups: 0,
-					deletedOrbs: 0,
-					deletedUnits: 0,
-					logs: 0,
-					logIds: new Set<string>(),
-				};
-				row.deletedOrbs += 1;
-				row.deletedUnits += orb.accounting.deletedUnits;
-				row.logIds.add(log.id);
-				byPlayer.set(key, row);
-			}
-		}
-	}
-	return [...byPlayer.values()]
-		.map(({ logIds, ...row }) => ({ ...row, logs: logIds.size }))
-		.sort(
-			(a, b) =>
-				b.deletedUnits - a.deletedUnits ||
-				b.pickups - a.pickups ||
-				a.player.primaryName.localeCompare(b.player.primaryName),
-		);
-};
 
 const getUnresolvedReasonRows = (detailsList: InsatiableHungerDetails[]) => {
 	const rows = new Map<
@@ -159,18 +76,32 @@ const getUnresolvedReasonRows = (detailsList: InsatiableHungerDetails[]) => {
 			row.units += orb.accounting.unresolvedUnits;
 			rows.set(orb.unresolvedReason, row);
 		}
+		const missingDecorationUnits = details.collects.reduce(
+			(total, collect) => total + collect.missingDecorationUnits,
+			0,
+		);
+		if (missingDecorationUnits > 0) {
+			const row = rows.get("missing-decoration") ?? {
+				reason: "missing-decoration" as const,
+				orbs: 0,
+				units: 0,
+			};
+			row.orbs += Math.ceil(missingDecorationUnits / 3);
+			row.units += missingDecorationUnits;
+			rows.set("missing-decoration", row);
+		}
 	}
 	return [...rows.values()].sort((a, b) => b.units - a.units);
 };
 
 const outcomeClass = (outcome: InsatiableOrbOutcome) => {
-	if (outcome === "player-collected") {
+	if (outcome === "collected") {
 		return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
 	}
-	if (outcome === "player-deleted") {
+	if (outcome === "deleted") {
 		return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
 	}
-	if (outcome.endsWith("absorbed")) {
+	if (outcome === "missed") {
 		return "bg-rose-500/15 text-rose-700 dark:text-rose-400";
 	}
 	if (outcome === "unresolved") {
@@ -219,17 +150,6 @@ const OrbLedger = ({ orb }: { orb: InsatiableOrb }) => {
 		});
 	}
 
-	const despawnedUnits =
-		orb.accounting.phaseDespawnedUnits +
-		orb.accounting.mechanicEndedUnits +
-		orb.accounting.split2BugDespawnUnits;
-	if (despawnedUnits > 0) {
-		entries.push({
-			key: "despawned",
-			label: `${OUTCOME_LABELS[orb.outcome]} +${despawnedUnits}`,
-			className: "border-border bg-muted text-muted-foreground",
-		});
-	}
 	if (orb.accounting.unresolvedUnits > 0) {
 		entries.push({
 			key: "unresolved",
@@ -269,7 +189,7 @@ const CastGroup = ({ cast }: { cast: InsatiableHungerCast }) => {
 		<section className="overflow-hidden rounded-lg border">
 			<div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/35 px-3 py-2">
 				<div className="flex items-center gap-2">
-					<span className="font-medium">Set {cast.index + 1}</span>
+					<span className="font-medium">{cast.collectName}</span>
 					<span className="font-mono text-xs text-muted-foreground">
 						{seconds(cast.castTime)}
 					</span>
@@ -321,58 +241,170 @@ const CastGroup = ({ cast }: { cast: InsatiableHungerCast }) => {
 	);
 };
 
-const PlayerInteractionTable = ({
-	rows,
-	showLogs = false,
+const CollectMatrix = ({
+	selectedLogs,
+	aggregatedPlayers,
 }: {
-	rows: PlayerInteractionRow[];
-	showLogs?: boolean;
+	selectedLogs: SelectedLog[];
+	aggregatedPlayers: AggregatedPlayer[];
 }) => {
-	if (rows.length === 0) {
-		return (
-			<div className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
-				No player interactions were reconstructed in the selected logs.
-			</div>
+	const matrix = useMemo(() => {
+		type Cell = { units: number; deleted: number };
+		type PlayerRow = {
+			key: string;
+			player: Pick<
+				AggregatedPlayer,
+				"primaryName" | "primaryIconUrl" | "characters"
+			>;
+			cells: Map<string, Cell>;
+		};
+		const columns = new Map<
+			string,
+			{
+				key: string;
+				name: string;
+				phase: string;
+				missed: number;
+				unresolved: number;
+				expected: number;
+				deleted: number;
+			}
+		>();
+		const players = new Map<string, PlayerRow>();
+		const resolvePlayer = (name: string) =>
+			aggregatedPlayers.find(
+				(player) =>
+					player.primaryName === name ||
+					player.characters.some((character) => character.name === name),
+			);
+
+		for (const { details } of selectedLogs) {
+			for (const collect of details.collects) {
+				const key = `${collect.phase}:${collect.name}`;
+				const column = columns.get(key) ?? {
+					key,
+					name: collect.name,
+					phase: collect.phase,
+					missed: 0,
+					unresolved: 0,
+					expected: 0,
+					deleted: 0,
+				};
+				column.missed += collect.missedUnits;
+				column.unresolved += collect.unresolvedUnits;
+				column.expected += collect.expectedOrbCount * 3;
+				column.deleted += collect.deletedUnits;
+				columns.set(key, column);
+
+				for (const [name, units] of Object.entries(collect.players)) {
+					const identity = resolvePlayer(name);
+					const playerKey = identity?.account ?? name;
+					const row = players.get(playerKey) ?? {
+						key: playerKey,
+						player: identity ?? { primaryName: name, characters: [] },
+						cells: new Map<string, Cell>(),
+					};
+					const cell = row.cells.get(key) ?? { units: 0, deleted: 0 };
+					cell.units += units.collectedUnits;
+					cell.deleted += units.deletedUnits;
+					row.cells.set(key, cell);
+					players.set(playerKey, row);
+				}
+			}
+		}
+
+		const columnRows = [...columns.values()];
+		const playerRows = [...players.values()].sort((a, b) => {
+			const totals = (row: PlayerRow) =>
+				[...row.cells.values()].reduce(
+					(total, cell) => ({
+						units: total.units + cell.units,
+						deleted: total.deleted + cell.deleted,
+					}),
+					{ units: 0, deleted: 0 },
+				);
+			const aTotal = totals(a);
+			const bTotal = totals(b);
+			return (
+				bTotal.deleted - aTotal.deleted ||
+				bTotal.units - aTotal.units ||
+				a.player.primaryName.localeCompare(b.player.primaryName)
+			);
+		});
+
+		return { columns: columnRows, players: playerRows };
+	}, [aggregatedPlayers, selectedLogs]);
+
+	const format = (units: number, deleted = 0) => `${units} (${deleted})`;
+	const sumCells = (cells: Map<string, { units: number; deleted: number }>) =>
+		[...cells.values()].reduce(
+			(total, cell) => ({
+				units: total.units + cell.units,
+				deleted: total.deleted + cell.deleted,
+			}),
+			{ units: 0, deleted: 0 },
 		);
-	}
+	const totals = matrix.columns.reduce(
+		(total, column) => ({
+			missed: total.missed + column.missed,
+			unresolved: total.unresolved + column.unresolved,
+			expected: total.expected + column.expected,
+			deleted: total.deleted + column.deleted,
+		}),
+		{ missed: 0, unresolved: 0, expected: 0, deleted: 0 },
+	);
 
 	return (
-		<div className="overflow-hidden rounded-lg border">
+		<div className="overflow-x-auto rounded-lg border">
 			<div className="border-b bg-muted/35 px-3 py-2 text-xs font-medium">
-				Player involvement
+				Collect matrix <span className="text-muted-foreground">units (deleted)</span>
 			</div>
 			<Table>
 				<TableHeader className="bg-muted/15">
 					<TableRow>
-						<TableHead>Player</TableHead>
-						<TableHead className="text-right">Pickups</TableHead>
-						<TableHead className="text-right">Deleted orbs</TableHead>
-						<TableHead className="text-right">Deleted units</TableHead>
-						{showLogs && <TableHead className="text-right">Logs</TableHead>}
+						<TableHead className="sticky left-0 min-w-36 bg-background">Player / outcome</TableHead>
+						{matrix.columns.map((column) => (
+							<TableHead key={column.key} className="min-w-32 text-right">
+								<div>{column.phase}</div>
+								<div className="text-xs font-normal text-muted-foreground">
+									{column.name}
+								</div>
+							</TableHead>
+						))}
+						<TableHead className="min-w-24 text-right">Final totals</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
-					{rows.map((row) => (
-						<TableRow key={row.key}>
-							<TableCell>
-								<PlayerNameCell player={row.player} />
-							</TableCell>
-							<TableCell className="text-right tabular-nums">
-								{row.pickups}
-							</TableCell>
-							<TableCell className="text-right tabular-nums">
-								{row.deletedOrbs || "—"}
-							</TableCell>
-							<TableCell className="text-right tabular-nums">
-								{row.deletedUnits || "—"}
-							</TableCell>
-							{showLogs && (
-								<TableCell className="text-right tabular-nums">
-									{row.logs}
+					{matrix.players.map((row) => {
+						const total = sumCells(row.cells);
+						return (
+							<TableRow key={row.key}>
+								<TableCell className="sticky left-0 bg-background">
+									<PlayerNameCell player={row.player} />
 								</TableCell>
-							)}
-						</TableRow>
-					))}
+								{matrix.columns.map((column) => {
+									const cell = row.cells.get(column.key) ?? { units: 0, deleted: 0 };
+									return <TableCell key={column.key} className="text-right tabular-nums">{format(cell.units, cell.deleted)}</TableCell>;
+								})}
+								<TableCell className="text-right font-medium tabular-nums">{format(total.units, total.deleted)}</TableCell>
+							</TableRow>
+						);
+					})}
+					<TableRow>
+						<TableCell className="sticky left-0 bg-background font-medium text-rose-600 dark:text-rose-400">Missed</TableCell>
+						{matrix.columns.map((column) => <TableCell key={column.key} className="text-right tabular-nums">{format(column.missed)}</TableCell>)}
+						<TableCell className="text-right font-medium tabular-nums">{format(totals.missed)}</TableCell>
+					</TableRow>
+					<TableRow>
+						<TableCell className="sticky left-0 bg-background font-medium text-destructive">Unresolved</TableCell>
+						{matrix.columns.map((column) => <TableCell key={column.key} className="text-right tabular-nums">{format(column.unresolved)}</TableCell>)}
+						<TableCell className="text-right font-medium tabular-nums">{format(totals.unresolved)}</TableCell>
+					</TableRow>
+					<TableRow className="bg-muted/20 font-semibold">
+						<TableCell className="sticky left-0 bg-muted">Totals</TableCell>
+						{matrix.columns.map((column) => <TableCell key={column.key} className="text-right tabular-nums">{format(column.expected, column.deleted)}</TableCell>)}
+						<TableCell className="text-right tabular-nums">{format(totals.expected, totals.deleted)}</TableCell>
+					</TableRow>
 				</TableBody>
 			</Table>
 		</div>
@@ -417,27 +449,24 @@ const SingleLogView = ({
 	details: InsatiableHungerDetails;
 	aggregatedPlayers: AggregatedPlayer[];
 }) => {
-	const playerRows = getPlayerInteractionRows(
-		[{ log, details }],
-		aggregatedPlayers,
-	);
+	const selectedLogs = [{ log, details }];
 	const unresolvedRows = getUnresolvedReasonRows([details]);
 
 	return (
 		<>
 			<div className="flex flex-wrap items-stretch gap-2">
-				<Metric label="orbs reconstructed" value={details.accounting.totalOrbs} />
+				<Metric label="expected orbs" value={details.accounting.totalOrbs} />
 				<Metric
 					label="confirmed player pickups"
-					value={details.accounting.playerInsatiableUnits}
+					value={details.accounting.collectedUnits}
 				/>
 				<Metric
 					label={`${getDeletedOrbCount(details)} strictly deleted orbs`}
 					value={details.accounting.deletedUnits}
 				/>
 				<Metric
-					label="Empowered leak units"
-					value={details.accounting.actorEmpoweredUnits}
+					label="missed units (Empowered)"
+					value={details.accounting.missedUnits}
 				/>
 				<Metric
 					label="strictly unresolved units"
@@ -446,8 +475,8 @@ const SingleLogView = ({
 			</div>
 			<div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
 				<span>
-					{details.casts.length} sets · {getDeletedOrbCount(details)} deleted
-					orbs · {getDespawnedUnits(details)} despawned units
+					{details.collects.length} expected collects · {details.casts.length} casts ·{" "}
+					{getDeletedOrbCount(details)} deleted orbs
 				</span>
 				<a
 					href={`https://dps.report/${log.id}`}
@@ -459,7 +488,10 @@ const SingleLogView = ({
 				</a>
 			</div>
 			<UnresolvedBreakdown rows={unresolvedRows} />
-			<PlayerInteractionTable rows={playerRows} />
+			<CollectMatrix
+				selectedLogs={selectedLogs}
+				aggregatedPlayers={aggregatedPlayers}
+			/>
 			<div className="flex flex-col gap-3">
 				{details.casts.map((cast) => (
 					<CastGroup key={`${log.id}-${cast.index}`} cast={cast} />
@@ -485,17 +517,15 @@ const MultiLogView = ({
 			deletedUnits: 0,
 			deletedOrbs: 0,
 			empowered: 0,
-			despawned: 0,
 			unresolved: 0,
 			logsWithUnresolved: 0,
 		};
 
 		for (const { details } of selectedLogs) {
 			totals.orbs += details.accounting.totalOrbs;
-			totals.stacks += details.accounting.playerInsatiableUnits;
+			totals.stacks += details.accounting.collectedUnits;
 			totals.deletedUnits += details.accounting.deletedUnits;
-			totals.empowered += details.accounting.actorEmpoweredUnits;
-			totals.despawned += getDespawnedUnits(details);
+			totals.empowered += details.accounting.missedUnits;
 			totals.unresolved += details.accounting.unresolvedUnits;
 			totals.deletedOrbs += getDeletedOrbCount(details);
 			if (details.accounting.unresolvedUnits > 0) {
@@ -505,12 +535,11 @@ const MultiLogView = ({
 
 		return {
 			totals,
-			playerRows: getPlayerInteractionRows(selectedLogs, aggregatedPlayers),
 			unresolvedRows: getUnresolvedReasonRows(
 				selectedLogs.map(({ details }) => details),
 			),
 		};
-	}, [aggregatedPlayers, selectedLogs]);
+	}, [selectedLogs]);
 
 	return (
 		<>
@@ -525,7 +554,7 @@ const MultiLogView = ({
 					value={summary.totals.deletedUnits}
 				/>
 				<Metric
-					label="Empowered leak units"
+					label="missed units (Empowered)"
 					value={summary.totals.empowered}
 				/>
 				<Metric
@@ -533,22 +562,20 @@ const MultiLogView = ({
 					value={summary.totals.unresolved}
 				/>
 			</div>
-			<div className="text-xs text-muted-foreground">
-				{summary.totals.despawned} units ended through a proven mechanic, phase,
-				or Split 2 bug despawn.
-			</div>
 			<UnresolvedBreakdown rows={summary.unresolvedRows} />
-			<PlayerInteractionTable rows={summary.playerRows} showLogs />
+			<CollectMatrix
+				selectedLogs={selectedLogs}
+				aggregatedPlayers={aggregatedPlayers}
+			/>
 			<div className="overflow-hidden rounded-lg border">
 				<Table>
 					<TableHeader className="bg-muted/50">
 						<TableRow>
 							<TableHead>Log</TableHead>
-							<TableHead>Sets / orbs</TableHead>
+							<TableHead>Collects / orbs</TableHead>
 							<TableHead>Pickups</TableHead>
 							<TableHead>Strict deletions</TableHead>
-							<TableHead>Empowered leaks</TableHead>
-							<TableHead>Despawned</TableHead>
+							<TableHead>Missed</TableHead>
 							<TableHead>Review</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -568,10 +595,10 @@ const MultiLogView = ({
 										</a>
 									</TableCell>
 									<TableCell className="tabular-nums">
-										{details.casts.length} / {details.accounting.totalOrbs}
+										{details.collects.length} / {details.accounting.totalOrbs}
 									</TableCell>
 									<TableCell className="tabular-nums">
-										{details.accounting.playerInsatiableUnits}
+										{details.accounting.collectedUnits}
 									</TableCell>
 									<TableCell className="tabular-nums">
 										{details.accounting.deletedUnits}
@@ -582,10 +609,7 @@ const MultiLogView = ({
 										)}
 									</TableCell>
 									<TableCell className="tabular-nums">
-										{details.accounting.actorEmpoweredUnits}
-									</TableCell>
-									<TableCell className="tabular-nums">
-										{getDespawnedUnits(details)}
+										{details.accounting.missedUnits}
 									</TableCell>
 									<TableCell>
 										<Badge

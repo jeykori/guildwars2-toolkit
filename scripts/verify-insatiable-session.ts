@@ -16,7 +16,7 @@ const verifyKnownAttributions = (
 	const empoweredOrb = set5?.orbs[1];
 	const finalOrb = set5?.orbs[2];
 	if (
-		empoweredOrb?.accounting.actorEmpoweredUnits !== 1 ||
+		empoweredOrb?.accounting.missedUnits !== 1 ||
 		empoweredOrb.empoweredTransitions[0]?.time !== 233631 ||
 		empoweredOrb.playerPickups.map(({ player }) => player).join(",") !==
 			"Player 4,Player 2" ||
@@ -63,10 +63,7 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 	console.log(
 		`${sessionLog.id}: ${accounting.accountedUnits}/${accounting.requiredUnits} observed/inferred units; ${accounting.unresolvedUnits} unresolved`,
 	);
-	for (const orb of [
-		...details.casts.flatMap((cast) => cast.orbs),
-		...details.unassignedOrbs,
-	]) {
+	for (const orb of details.casts.flatMap((cast) => cast.orbs)) {
 		if (orb.accounting.accountedUnits > orb.accounting.requiredUnits) {
 			throw new Error(`${sessionLog.id} contains an overfilled orb ledger`);
 		}
@@ -75,7 +72,7 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 		}
 		if (
 			orb.accounting.deletedUnits > 0 &&
-			(orb.accounting.actorEmpoweredUnits > 0 || !orb.deletionEvidence)
+			(orb.accounting.missedUnits > 0 || !orb.deletionEvidence)
 		) {
 			throw new Error(`${sessionLog.id} contains an unproven deletion`);
 		}

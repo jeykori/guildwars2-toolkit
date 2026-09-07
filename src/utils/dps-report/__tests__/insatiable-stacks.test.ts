@@ -53,24 +53,23 @@ describe("Insatiable stack attribution", () => {
 	});
 
 	it("counts a positive transition at a phase boundary", () => {
-		const firstPlayer = report.players[0];
 		const firstPhase = report.phases[0];
-		if (!firstPlayer || !firstPhase) throw new Error("Fixture is incomplete");
+		const insatiable = report.mechanics.find(
+			(mechanic) => mechanic.name === "Ins.A",
+		);
+		if (!firstPhase || !insatiable) throw new Error("Fixture is incomplete");
 
 		const boundaryReport: DpsReportJson = {
 			...report,
-			players: [
+			mechanics: [
 				{
-					...firstPlayer,
-					name: "Boundary Player",
-					buffUptimes: [
+					...insatiable,
+					mechanicsData: [
 						{
-							id: 70253,
-							buffData: [],
-							states: [
-								[0, 0],
-								[1000, 1],
-							],
+							...insatiable.mechanicsData[0]!,
+							actor: "Boundary Player",
+							time: 1000,
+							weight: 1,
 						},
 					],
 				},

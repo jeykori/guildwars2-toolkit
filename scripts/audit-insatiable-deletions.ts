@@ -90,7 +90,7 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 					competingDistance - matchingTouch.distance <
 						DELETION_ATTRIBUTION_MARGIN &&
 					"competing player contact",
-				orb.accounting.actorEmpoweredUnits > 0 && "actor stack also assigned",
+				orb.accounting.missedUnits > 0 && "actor stack also assigned",
 				orb.playerPickups.some((pickup) => pickup.player === deletion.player) &&
 					"deleting player also received Insatiable from target orb",
 				orb.accounting.accountedUnits !== orb.accounting.requiredUnits &&

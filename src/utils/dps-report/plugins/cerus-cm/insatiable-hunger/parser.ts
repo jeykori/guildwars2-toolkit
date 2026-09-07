@@ -1,7 +1,11 @@
 import type { CustomMetricDefinition } from "../../../../../types";
 import { CERUS_CM_PHASES } from "../encounter-context/constants";
 import type { CerusLogDetails, CerusPlugin, CerusSubParser } from "../types";
-import { trackInsatiableHungerOrbs } from "./orbs";
+import {
+	summarizeInsatiableCollects,
+	trackInsatiableHungerOrbs,
+} from "./orbs";
+import type { InsatiableHungerDetails } from "./types";
 
 export const CERUS_CM_HUNGER_DELETIONS_ID =
 	"25989.cerus-cm.insatiable-hunger.deletions";
@@ -24,36 +28,32 @@ export const parseInsatiableHunger: CerusSubParser = (
 	mapped.encounterDetails ??= {};
 	mapped.encounterDetails.insatiableHunger = details;
 
-	const fullFightIndex = report.phases.findIndex(
-		(phase) => phase.name === CERUS_CM_PHASES.FULL_FIGHT,
-	);
-	if (fullFightIndex >= 0) {
-		const orbs = [
-			...details.casts.flatMap((cast) =>
-				cast.orbs.map((orb) => ({ cast, orb })),
-			),
-			...details.unassignedOrbs.map((orb) => ({ cast: null, orb })),
-		];
+	const phaseCollects = (phaseName: string) => {
+		if (phaseName === CERUS_CM_PHASES.FULL_FIGHT) return details.collects;
+		if (phaseName === CERUS_CM_PHASES.P50_10) {
+			return details.collects.filter((collect) => collect.phase === "Phase 3");
+		}
+		return details.collects.filter((collect) => collect.phase === phaseName);
+	};
 
+	for (const [phaseIndex, reportPhase] of report.phases.entries()) {
+		const collects = phaseCollects(reportPhase.name);
+		if (collects.length === 0) continue;
 		for (const player of mapped.players) {
-			const deletions = orbs.filter(
-				({ orb }) => orb.deletedBy?.player === player.characterName,
-			);
-			const deletedUnits = deletions.reduce(
-				(total, { orb }) => total + orb.accounting.deletedUnits,
+			const deletedUnits = collects.reduce(
+				(total, collect) =>
+					total + (collect.players[player.characterName]?.deletedUnits ?? 0),
 				0,
 			);
-			const phase = player.phases[fullFightIndex];
+			const phase = player.phases[phaseIndex];
 			if (!phase || deletedUnits === 0) continue;
-
 			phase.customSummaryMetrics[CERUS_CM_HUNGER_DELETIONS_ID] = {
 				dataType: "scalar",
 				value: deletedUnits,
-				tooltip: deletions.map(({ cast, orb }) =>
-					cast
-						? `Set ${cast.index + 1}, orb ${orb.index + 1}: ${orb.accounting.deletedUnits} unit(s)`
-						: `Unassigned orb ${orb.index + 1}: ${orb.accounting.deletedUnits} unit(s)`,
-				),
+				tooltip: collects.flatMap((collect) => {
+					const units = collect.players[player.characterName]?.deletedUnits ?? 0;
+					return units > 0 ? [`${collect.name}: ${units} unit(s)`] : [];
+				}),
 			};
 		}
 	}
@@ -64,6 +64,7 @@ export const parseInsatiableHunger: CerusSubParser = (
 export const aggregateInsatiableHunger: CerusPlugin["aggregateDetails"] = (
 	_players,
 	logs,
+	{ selectedPhaseNames },
 ) => {
 	const perLog: NonNullable<
 		ReturnType<CerusPlugin["aggregateDetails"]>["insatiableHunger"]
@@ -72,7 +73,30 @@ export const aggregateInsatiableHunger: CerusPlugin["aggregateDetails"] = (
 	for (const log of logs) {
 		const details = (log.encounterDetails as CerusLogDetails | undefined)
 			?.insatiableHunger;
-		if (details) perLog[log.id] = details;
+		if (!details) continue;
+		const includeAll = selectedPhaseNames.has(CERUS_CM_PHASES.FULL_FIGHT);
+		const includeP3 = selectedPhaseNames.has(CERUS_CM_PHASES.P50_10);
+		const collects = details.collects.filter(
+			(collect) =>
+				includeAll ||
+				selectedPhaseNames.has(collect.phase) ||
+				(includeP3 && collect.phase === CERUS_CM_PHASES.P3),
+		);
+		const collectNames = new Set(collects.map((collect) => collect.name));
+		const filtered: InsatiableHungerDetails = {
+			...details,
+			collects,
+			casts: details.casts.filter((cast) => collectNames.has(cast.collectName)),
+			empoweredTransitions: details.empoweredTransitions.filter((transition) =>
+				collects.some(
+					(collect) =>
+						transition.time >= collect.searchWindow[0] &&
+						transition.time <= collect.searchWindow[1],
+				),
+			),
+			accounting: summarizeInsatiableCollects(collects),
+		};
+		perLog[log.id] = filtered;
 	}
 
 	return { insatiableHunger: { perLog } };
