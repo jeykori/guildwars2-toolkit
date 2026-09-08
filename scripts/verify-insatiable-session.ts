@@ -70,6 +70,23 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 		`${sessionLog.id}: ${accounting.accountedUnits}/${accounting.requiredUnits} observed/inferred units; ${accounting.unresolvedUnits} unresolved`,
 	);
 	for (const orb of details.casts.flatMap((cast) => cast.orbs)) {
+		const eventUnits = orb.events.reduce(
+			(total, event) => ({
+				collected: total.collected + (event.type === "pickup" ? 1 : 0),
+				missed:
+					total.missed +
+					(event.type === "empowered" ? (event.assignedUnits ?? 0) : 0),
+				deleted: total.deleted + (event.type === "delete" ? event.units : 0),
+			}),
+			{ collected: 0, missed: 0, deleted: 0 },
+		);
+		if (
+			eventUnits.collected !== orb.accounting.collectedUnits ||
+			eventUnits.missed !== orb.accounting.missedUnits ||
+			eventUnits.deleted !== orb.accounting.deletedUnits
+		) {
+			throw new Error(`${sessionLog.id} has a ledger/accounting mismatch`);
+		}
 		if (orb.accounting.accountedUnits > orb.accounting.requiredUnits) {
 			throw new Error(`${sessionLog.id} contains an overfilled orb ledger`);
 		}
@@ -82,6 +99,19 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 				!orb.events.some((event) => event.type === "delete" && event.proof))
 		) {
 			throw new Error(`${sessionLog.id} contains an unproven deletion`);
+		}
+	}
+	for (const collect of details.collects) {
+		const classifiedUnits =
+			collect.collectedUnits +
+			collect.missedUnits +
+			collect.deletedUnits +
+			collect.unresolvedUnits;
+		if (
+			!collect.conserved ||
+			classifiedUnits !== collect.expectedOrbCount * 3
+		) {
+			throw new Error(`${sessionLog.id} has a non-conserving collect ledger`);
 		}
 	}
 }
