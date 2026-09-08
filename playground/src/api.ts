@@ -37,19 +37,52 @@ async function fetchJson<T>(
 	return response.json();
 }
 
+async function getLogDataWithRetry(reportId: string, attempts = 3) {
+	let lastError: unknown;
+
+	for (let attempt = 0; attempt < attempts; attempt++) {
+		try {
+			return await getLogData(reportId);
+		} catch (error) {
+			lastError = error;
+			if (attempt < attempts - 1) {
+				await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+			}
+		}
+	}
+
+	throw lastError instanceof Error
+		? lastError
+		: new Error(`Failed to load report ${reportId}`);
+}
+
 export async function getDpsReportSummary(
 	reportId: string,
 ): Promise<DpsReportSummary> {
 	if (reportId === "cerus-session") {
-		const reportPromises = Array.from({ length: 11 }, async (_, i) => {
-			const res = await fetch(`/data/log-data/cerus-session/${i + 1}.json`);
-			if (!res.ok) {
-				throw new Error(`Failed to fetch report ${i + 1}`);
-			}
-			return res.json();
-		});
+		const fixtureReports = await Promise.all(
+			Array.from({ length: 11 }, async (_, i) => {
+				const res = await fetch(`/data/log-data/cerus-session/${i + 1}.json`);
+				if (!res.ok) {
+					throw new Error(`Failed to fetch report ${i + 1}`);
+				}
+				return res.json();
+			}),
+		);
 
-		const reports = await Promise.all(reportPromises);
+		// The committed session files are already mapped LogData fixtures. Re-map
+		// each public report when possible so new parsers (including combat-replay
+		// based encounter details) are exercised for the whole session.
+		const reports = await Promise.all(
+			fixtureReports.map(async (fixture) => {
+				try {
+					return await getLogDataWithRetry(fixture.id);
+				} catch (error) {
+					console.warn(`Falling back to session fixture ${fixture.id}`, error);
+					return fixture;
+				}
+			}),
+		);
 
 		return DpsReport.assembleReports(reports);
 	}

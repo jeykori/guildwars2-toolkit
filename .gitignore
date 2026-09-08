@@ -1,6 +1,13 @@
 # dependencies (bun install)
 node_modules
 
+# local Python tooling environment
+.venv
+
+# local browser verification artifacts
+.playwright-cli/
+output/playwright/
+
 # output
 out
 dist

@@ -6,6 +6,7 @@ import { DpsCheckTable } from "./DpsCheckTable";
 import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
 import { FlowerFailGraph } from "./FlowerFailGraph";
 import { FlowerFailTable } from "./FlowerFailTable";
+import { InsatiableHungerTable } from "./InsatiableHungerTable";
 import { MaliceFailTable } from "./MaliceFailTable";
 import { PortalPerformanceTable } from "./PortalPerformanceTable";
 
@@ -43,6 +44,7 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 				<TabsList>
 					<TabsTrigger value="dps">50%-10% DPS Check</TabsTrigger>
 					<TabsTrigger value="flower-stats">Flower Statistics</TabsTrigger>
+					<TabsTrigger value="insatiable-hunger">Insatiable Hunger</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="dps" className="">
@@ -53,6 +55,10 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 					<FlowerFailTable {...props} />
 					<FlowerBreakdownTable {...props} />
 					<FlowerFailGraph {...props} />
+				</TabsContent>
+
+				<TabsContent value="insatiable-hunger">
+					<InsatiableHungerTable {...props} />
 				</TabsContent>
 			</Tabs>
 		</div>
