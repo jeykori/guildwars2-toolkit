@@ -36,10 +36,6 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 			</div>
 
 			<div className="w-full">
-				<InsatiableHungerTable {...props} />
-			</div>
-
-			<div className="w-full">
 				<MaliceFailTable {...props} />
 			</div>
 
@@ -48,6 +44,7 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 				<TabsList>
 					<TabsTrigger value="dps">50%-10% DPS Check</TabsTrigger>
 					<TabsTrigger value="flower-stats">Flower Statistics</TabsTrigger>
+					<TabsTrigger value="insatiable-hunger">Insatiable Hunger</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="dps" className="">
@@ -58,6 +55,10 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 					<FlowerFailTable {...props} />
 					<FlowerBreakdownTable {...props} />
 					<FlowerFailGraph {...props} />
+				</TabsContent>
+
+				<TabsContent value="insatiable-hunger">
+					<InsatiableHungerTable {...props} />
 				</TabsContent>
 			</Tabs>
 		</div>

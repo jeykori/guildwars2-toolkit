@@ -3,7 +3,6 @@ import type {
 	DpsReportJson,
 } from "../src/types/dps-report/elite-insights";
 import {
-	DELETION_ATTRIBUTION_MARGIN,
 	DELETION_CONTACT_RADIUS,
 	DUPLICATE_TOUCH_WINDOW_MS,
 	TERMINAL_PICKUP_FALLBACK_WINDOW_MS,
@@ -57,23 +56,10 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 			}
 			if (orb.accounting.deletedUnits === 0) continue;
 			deletionCount += 1;
-			const deletion = orb.deletedBy;
+			const deletion = orb.events.find((event) => event.type === "delete");
 			if (!deletion) throw new Error("Deletion has no attributed player");
-			if (!orb.deletionEvidence) {
-				throw new Error("Deletion has no structured proof chain");
-			}
 			const priorDelta = deletion.time - deletion.priorPickupTime;
 			const terminalDelta = orb.endTime - deletion.time;
-			const matchingTouch = orb.inferredTouches.find(
-				(touch) =>
-					touch.player === deletion.player &&
-					touch.time === deletion.time &&
-					touch.priorPickupTime === deletion.priorPickupTime,
-			);
-			const competingDistance = orb.inferredTouches
-				.filter((touch) => touch !== matchingTouch)
-				.map((touch) => touch.distance)
-				.sort((a, b) => a - b)[0];
 			const errors = [
 				deletion.evidence !== "terminal-contact" && "not terminal contact",
 				(priorDelta <= 0 || priorDelta > DUPLICATE_TOUCH_WINDOW_MS) &&
@@ -81,17 +67,13 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 				(terminalDelta < 0 ||
 					terminalDelta > TERMINAL_PICKUP_FALLBACK_WINDOW_MS) &&
 					"not on terminal frames",
-				!matchingTouch && "missing matching replay touch",
-				matchingTouch &&
-					matchingTouch.distance > DELETION_CONTACT_RADIUS &&
-					"contact too far",
-				matchingTouch &&
-					competingDistance !== undefined &&
-					competingDistance - matchingTouch.distance <
-						DELETION_ATTRIBUTION_MARGIN &&
-					"competing player contact",
+				!deletion.proof && "missing structured proof chain",
+				deletion.proof.contactDistance > DELETION_CONTACT_RADIUS && "contact too far",
+				!deletion.proof.uniqueTerminalContact && "competing player contact",
 				orb.accounting.missedUnits > 0 && "actor stack also assigned",
-				orb.playerPickups.some((pickup) => pickup.player === deletion.player) &&
+				orb.events.some(
+					(event) => event.type === "pickup" && event.player === deletion.player,
+				) &&
 					"deleting player also received Insatiable from target orb",
 				orb.accounting.accountedUnits !== orb.accounting.requiredUnits &&
 					"ledger does not conserve three units",
@@ -102,7 +84,7 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 				);
 			}
 			console.log(
-				`${sessionLog.id} Set ${cast.index + 1} orb ${orb.index + 1}: ${deletion.player} picked another orb at ${(deletion.priorPickupTime / 1000).toFixed(3)}s, uniquely contacted this orb ${(priorDelta / 1000).toFixed(3)}s later on its terminal frames (${matchingTouch?.distance.toFixed(1)} units), received no target-orb Insatiable stack, and no actor Empowered unit was assigned; ${orb.accounting.deletedUnits} unit(s) deleted.`,
+				`${sessionLog.id} Set ${cast.index + 1} orb ${orb.index + 1}: ${deletion.player} picked another orb at ${(deletion.priorPickupTime / 1000).toFixed(3)}s, uniquely contacted this orb ${(priorDelta / 1000).toFixed(3)}s later on its terminal frames (${deletion.proof.contactDistance.toFixed(1)} units), received no target-orb Insatiable stack, and no actor Empowered unit was assigned; ${orb.accounting.deletedUnits} unit(s) deleted.`,
 			);
 		}
 	}

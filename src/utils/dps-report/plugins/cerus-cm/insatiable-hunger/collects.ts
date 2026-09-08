@@ -53,9 +53,14 @@ const normalSkills = new Set<number>(HUNGER_SKILL_IDS.normal);
 const empoweredSkills = new Set<number>(HUNGER_SKILL_IDS.empowered);
 const hungerTargets = new Set<number>(HUNGER_TARGET_IDS);
 
-export const findInsatiableHungerCasts = (
+const isPhaseCollect = (
+	collect: ExpectedCollect,
+): collect is ExpectedPhaseCollect => "times" in collect;
+
+export const matchExpectedCollects = (
 	report: DpsReportJson,
-): InsatiableHungerRawCast[] => {
+	expectedCollects = EXPECTED_COLLECTS,
+): { rawCollects: InsatiableHungerRawCollect[]; casts: InsatiableHungerRawCast[] } => {
 	const casts: InsatiableHungerRawCast[] = [];
 	for (const target of report.targets) {
 		if (!hungerTargets.has(target.id)) continue;
@@ -78,18 +83,7 @@ export const findInsatiableHungerCasts = (
 			}
 		}
 	}
-	return casts.sort((a, b) => a.castTime - b.castTime);
-};
-
-const isPhaseCollect = (
-	collect: ExpectedCollect,
-): collect is ExpectedPhaseCollect => "times" in collect;
-
-export const matchExpectedCollects = (
-	report: DpsReportJson,
-	casts = findInsatiableHungerCasts(report),
-	expectedCollects = EXPECTED_COLLECTS,
-): InsatiableHungerRawCollect[] => {
+	casts.sort((a, b) => a.castTime - b.castTime);
 	const available = new Set(casts);
 	const matched: InsatiableHungerRawCollect[] = [];
 
@@ -143,5 +137,8 @@ export const matchExpectedCollects = (
 		});
 	}
 
-	return matched.sort((a, b) => a.searchWindow[0] - b.searchWindow[0]);
+	return {
+		rawCollects: matched.sort((a, b) => a.searchWindow[0] - b.searchWindow[0]),
+		casts,
+	};
 };

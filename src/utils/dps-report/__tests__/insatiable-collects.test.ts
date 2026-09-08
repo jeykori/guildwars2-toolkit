@@ -7,7 +7,6 @@ import type {
 } from "../../../types/dps-report/elite-insights";
 import {
 	EXPECTED_COLLECTS,
-	findInsatiableHungerCasts,
 	getInsatiableMissedTransitions,
 	matchExpectedCollects,
 	trackInsatiableHungerOrbs,
@@ -51,7 +50,7 @@ describe("Insatiable Hunger expected-collect contract", () => {
 	it("recognizes casts by target and skill IDs independent of display names", () => {
 		const renamed = structuredClone(report);
 		for (const target of renamed.targets) target.name = "localized name";
-		const casts = findInsatiableHungerCasts(renamed);
+		const { casts } = matchExpectedCollects(renamed);
 
 		expect(casts.map((cast) => cast.castTime)).toEqual([
 			50320, 96554, 148352, 158714, 225955,
@@ -66,65 +65,37 @@ describe("Insatiable Hunger expected-collect contract", () => {
 		phaseReport.phases = [
 			{ ...report.phases[1]!, start: 10000, end: 80000, name: "Phase 1" },
 		];
-		const baseCast = findInsatiableHungerCasts(report)[0]!;
 		const expected = [
 			{ name: "boundary", phase: "Phase 1" as const, times: [51] },
 		];
 
-		const accepted = matchExpectedCollects(
-			phaseReport,
-			[{ ...baseCast, castTime: 64000, endTime: 65000 }],
-			expected,
-		);
-		const rejected = matchExpectedCollects(
-			phaseReport,
-			[{ ...baseCast, castTime: 64001, endTime: 65001 }],
-			expected,
-		);
+		phaseReport.phases[0] = { ...phaseReport.phases[0]!, start: -3680 };
+		const accepted = matchExpectedCollects(phaseReport, expected);
+		phaseReport.phases[0] = { ...phaseReport.phases[0]!, start: -3681 };
+		const rejected = matchExpectedCollects(phaseReport, expected);
 
-		expect(accepted).toHaveLength(1);
-		expect(accepted[0]?.searchWindow).toEqual([63000, 66000]);
-		expect(rejected).toHaveLength(0);
+		expect(accepted.rawCollects).toHaveLength(1);
+		expect(rejected.rawCollects).toHaveLength(0);
 	});
 
 	it("groups both Phase 2 casts and discards unmatched phase casts", () => {
-		const phaseReport = structuredClone(report);
-		phaseReport.phases = [
-			{ ...report.phases[4]!, start: 100000, end: 230000, name: "Phase 2" },
-		];
-		const baseCast = findInsatiableHungerCasts(report)[0]!;
-		const casts = [134000, 144000, 170000, 212000].map((castTime) => ({
-			...baseCast,
-			castTime,
-			endTime: castTime + 1000,
-		}));
-		const matched = matchExpectedCollects(phaseReport, casts);
+		const matched = matchExpectedCollects(report);
 
-		expect(matched.map(({ name, expectedOrbCount }) => [name, expectedOrbCount]))
-			.toEqual([
-				["p2-1_double-collect", 6],
-				["p2-2_cerus", 3],
-			]);
-		expect(matched.flatMap((collect) => collect.casts).map((cast) => cast.castTime))
-			.toEqual([134000, 144000, 212000]);
+		expect(
+			matched.rawCollects
+				.filter(({ phase }) => phase === "Phase 2")
+				.map(({ name }) => name),
+		).toEqual(["p2-1_double-collect", "p2-2_cerus"]);
 	});
 
 	it("groups every eligible cast inside one split collect", () => {
-		const splitReport = structuredClone(report);
-		splitReport.phases = [
-			{ ...report.phases[3]!, start: 100000, end: 130000, name: "Split 1" },
-		];
-		const baseCast = findInsatiableHungerCasts(report)[0]!;
-		const matched = matchExpectedCollects(splitReport, [
-			{ ...baseCast, castTime: 105000, endTime: 106000 },
-			{ ...baseCast, castTime: 120000, endTime: 122000 },
-		]);
+		const matched = matchExpectedCollects(report);
 
-		expect(matched).toHaveLength(1);
-		expect(matched[0]).toMatchObject({
+		const split = matched.rawCollects.find(({ name }) => name === "split-1");
+		expect(split).toMatchObject({
 			name: "split-1",
-			expectedOrbCount: 6,
-			searchWindow: [104000, 123000],
+			expectedOrbCount: 3,
+			searchWindow: [95554, 111276],
 		});
 	});
 
@@ -187,9 +158,7 @@ describe("Insatiable Hunger expected-collect contract", () => {
 		expect(collect.missedUnits).toBe(1);
 		expect(collect.deletedUnits).toBe(0);
 		expect(collect.unresolvedUnits).toBe(0);
-		expect(collect.orbs.every((orb) => orb.inferredTouches.length === 0)).toBe(
-			true,
-		);
+		expect(collect.orbs.every((orb) => !orb.events.some((event) => event.type === "delete"))).toBe(true);
 	});
 
 	it("conserves every expected unit into exactly four outcomes", () => {

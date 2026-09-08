@@ -1,6 +1,5 @@
 export {
 	EXPECTED_COLLECTS,
-	findInsatiableHungerCasts,
 	matchExpectedCollects,
 } from "./collects";
 export {

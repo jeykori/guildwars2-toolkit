@@ -33,11 +33,13 @@ import type {
 	InsatiableOrb,
 	InsatiableOrbAccounting,
 	InsatiableOrbCollectionState,
+	InsatiableOrbEvent,
 	InsatiableOrbPickup,
 	InsatiableOrbPosition,
 	InsatiableOrbTouch,
 	InsatiableUnassignedPlayerApplication,
 	InsatiableHungerRawCollect,
+	InsatiableHungerRawCast,
 } from "./types";
 
 const TERMINAL_TOUCH_WINDOW_MS = 2 * 300;
@@ -46,6 +48,8 @@ const TOUCH_SCAN_INTERVAL_MS = 25;
 type OrbWithDecoration = InsatiableOrb & {
 	decoration: DecorationRendering;
 	globalIndex: number;
+	inferredTouches: InsatiableOrbTouch[];
+	deletionCandidate?: InsatiableOrbTouch;
 };
 
 type CastWithOrbs = Omit<InsatiableHungerCast, "orbs"> & {
@@ -62,6 +66,24 @@ type PickupAssignments = {
 type ProvisionalEmpoweredReservations = Map<number, number>;
 
 type DeletionCandidate = InsatiableOrbTouch;
+
+const pickupEvents = (orb: InsatiableOrb) =>
+	orb.events.filter(
+		(event): event is Extract<InsatiableOrbEvent, { type: "pickup" }> =>
+			event.type === "pickup",
+	);
+
+const empoweredEvents = (orb: InsatiableOrb) =>
+	orb.events.filter(
+		(event): event is Extract<InsatiableOrbEvent, { type: "empowered" }> =>
+			event.type === "empowered",
+	);
+
+const deleteEvent = (orb: InsatiableOrb) =>
+	orb.events.find(
+		(event): event is Extract<InsatiableOrbEvent, { type: "delete" }> =>
+			event.type === "delete",
+	);
 
 const distance = (a: InsatiableOrbPosition, b: InsatiableOrbPosition) =>
 	Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -175,10 +197,19 @@ const getLargeOrbDecorations = (combatReplay: CombatReplayJson) =>
 		return metadata?.type === 2 && metadata.radius === 30;
 	});
 
-const getHungerCasts = (report: DpsReportJson): CastWithOrbs[] => {
-	return matchExpectedCollects(report)
-		.flatMap((collect) =>
-			collect.casts.map((cast) => ({
+const getHungerCasts = (
+	rawCollects: InsatiableHungerRawCollect[],
+	casts: InsatiableHungerRawCast[],
+): CastWithOrbs[] => {
+	const collectByCast = new Map(
+		rawCollects.flatMap((collect) =>
+			collect.casts.map((cast) => [cast, collect] as const),
+		),
+	);
+	return casts
+		.flatMap((cast) => {
+			const collect = collectByCast.get(cast);
+			return collect ? [{
 				index: 0,
 				source: cast.source,
 				skillId: cast.skillId,
@@ -188,8 +219,8 @@ const getHungerCasts = (report: DpsReportJson): CastWithOrbs[] => {
 				phase: collect.phase,
 				expectedOrbCount: cast.expectedOrbCount,
 				orbs: [],
-			})),
-		)
+			}] : [];
+		})
 		.sort((a, b) => a.castTime - b.castTime)
 		.map((cast, index) => ({ ...cast, index }));
 };
@@ -276,16 +307,14 @@ const createOrb = (
 		endTime: decoration.end,
 		spawnPosition: [positions[0] ?? 0, positions[1] ?? 0],
 		endPosition: terminalPosition,
-		playerPickups: [],
+		collectName: "",
+		events: [],
 		inferredTouches: [],
-		empoweredTransitions: [],
 		collectionCount: 0,
 		collectionState: "untouched",
 		accounting: emptyOrbAccounting(),
 		outcome: "unresolved",
 		unresolvedReason: null,
-		terminalTime: decoration.end,
-		terminalPosition,
 	};
 };
 
@@ -300,7 +329,7 @@ const assignPickupEvents = (
 	report: DpsReportJson,
 	orbs: OrbWithDecoration[],
 	empoweredReservations: ProvisionalEmpoweredReservations,
-	collects: InsatiableHungerRawCollect[],
+	collect: InsatiableHungerRawCollect,
 ): PickupAssignments => {
 	const byPlayer = new Map<string, PickupWithOrb[]>();
 	const unassigned: InsatiableUnassignedPlayerApplication[] = [];
@@ -310,23 +339,18 @@ const assignPickupEvents = (
 
 	for (const event of mechanic?.mechanicsData ?? []) {
 		if (
-			!collects.some(
-				(collect) =>
-					event.time >= collect.searchWindow[0] &&
-					event.time <= collect.searchWindow[1],
-			)
+			event.time < collect.searchWindow[0] ||
+			event.time > collect.searchWindow[1]
 		) {
 			continue;
 		}
-		const stackTransition = {
-			stackDelta: Math.max(1, event.weight ?? 1),
-		};
+		const stackDelta = 1;
 		const playerPosition = getPlayerPosition(report, event.actor, event.time);
 		if (!playerPosition) {
 			unassigned.push({
 				player: event.actor,
 				time: event.time,
-				stackDelta: stackTransition.stackDelta,
+				stackDelta,
 				reason: "no-active-orb",
 			});
 			continue;
@@ -490,7 +514,7 @@ const assignPickupEvents = (
 			unassigned.push({
 				player: event.actor,
 				time: event.time,
-				stackDelta: stackTransition.stackDelta,
+				stackDelta,
 				reason: "no-active-orb",
 			});
 			continue;
@@ -524,7 +548,7 @@ const assignPickupEvents = (
 				unassigned.push({
 					player: event.actor,
 					time: event.time,
-					stackDelta: stackTransition.stackDelta,
+					stackDelta,
 					reason: "ambiguous-orb",
 				});
 				continue;
@@ -535,13 +559,12 @@ const assignPickupEvents = (
 			orbKey: assignedCandidate.orb.globalIndex,
 			player: event.actor,
 			time: event.time,
-			...stackTransition,
 			distance: assignedCandidate.distance,
 			attribution,
 			confirmed: true,
 		};
 		const { orbKey: _orbKey, ...publicPickup } = pickup;
-		assignedCandidate.orb.playerPickups.push(publicPickup);
+		assignedCandidate.orb.events.push({ type: "pickup", ...publicPickup });
 		const playerPickups = byPlayer.get(event.actor) ?? [];
 		playerPickups.push(pickup);
 		byPlayer.set(event.actor, playerPickups);
@@ -559,7 +582,7 @@ const inferTerminalTouches = (
 	const candidates: DeletionCandidate[] = [];
 
 	for (const player of report.players) {
-		if (orb.playerPickups.some((pickup) => pickup.player === player.name)) {
+		if (pickupEvents(orb).some((pickup) => pickup.player === player.name)) {
 			continue;
 		}
 		for (const previousPickup of playerPickups.get(player.name) ?? []) {
@@ -620,13 +643,7 @@ const inferTerminalTouches = (
 		(!runnerUp ||
 			runnerUp.distance - best.distance >= DELETION_ATTRIBUTION_MARGIN)
 	) {
-		orb.deletedBy = {
-			player: best.player,
-			time: best.time,
-			priorPickupTime: best.priorPickupTime,
-			priorOrbIndex: best.priorOrbIndex,
-			evidence: best.evidence,
-		};
+		orb.deletionCandidate = best;
 	}
 	return unique;
 };
@@ -645,7 +662,7 @@ const inferCausalTouches = (
 	const candidates: DeletionCandidate[] = [];
 
 	for (const player of report.players) {
-		if (orb.playerPickups.some((pickup) => pickup.player === player.name)) {
+		if (pickupEvents(orb).some((pickup) => pickup.player === player.name)) {
 			continue;
 		}
 		for (const previousPickup of playerPickups.get(player.name) ?? []) {
@@ -719,22 +736,15 @@ const inferCausalTouches = (
 		(!runnerUp ||
 			runnerUp.distance - best.distance >= DELETION_ATTRIBUTION_MARGIN)
 	) {
-		orb.deletedBy = {
-			player: best.player,
-			time: best.time,
-			priorPickupTime: best.priorPickupTime,
-			priorOrbIndex: best.priorOrbIndex,
-			evidence: best.evidence,
-		};
+		orb.deletionCandidate = best;
 	}
 	return unique;
 };
 
-const getPlayerUnits = (orb: InsatiableOrb) =>
-	orb.playerPickups.reduce((total, pickup) => total + pickup.stackDelta, 0);
+const getPlayerUnits = (orb: InsatiableOrb) => pickupEvents(orb).length;
 
 const getActorUnits = (orb: InsatiableOrb) =>
-	orb.empoweredTransitions.reduce(
+	empoweredEvents(orb).reduce(
 		(total, transition) => total + (transition.assignedUnits ?? 0),
 		0,
 	);
@@ -752,8 +762,8 @@ const assignEmpoweredTransitions = (
 				({ orb, delta }) =>
 					delta >= -EVENT_CORRELATION_WINDOW_MS &&
 					delta <= DELAYED_EMPOWERED_EVENT_WINDOW_MS &&
-					(orb.deletedBy?.evidence !== "terminal-contact" ||
-						transition.time < orb.deletedBy.time ||
+					(orb.deletionCandidate?.evidence !== "terminal-contact" ||
+						transition.time < orb.deletionCandidate.time ||
 						// A terminal actor stack is stronger evidence than a
 						// provisional duplicate-touch deletion. EI may emit the
 						// actor transition on the orb's terminal frame, after the
@@ -769,7 +779,7 @@ const assignEmpoweredTransitions = (
 			);
 			if (capacity === 0) continue;
 			const assignedUnits = Math.min(remainingUnits, capacity);
-			orb.empoweredTransitions.push({ ...transition, assignedUnits });
+			orb.events.push({ type: "empowered", ...transition, assignedUnits });
 			remainingUnits -= assignedUnits;
 		}
 		unassignedUnits += remainingUnits;
@@ -802,7 +812,7 @@ const getCollectionState = (
 
 const isSplit2BugDespawn = (
 	cast: InsatiableHungerCast | undefined,
-	orb: InsatiableOrb,
+	orb: OrbWithDecoration,
 	observedUnits: number,
 ) =>
 	cast?.source.includes("Empowered Embodiment of Gluttony") &&
@@ -866,14 +876,15 @@ const resolveOutcome = (
 	const accounting = emptyOrbAccounting();
 	accounting.collectedUnits = playerInsatiableUnits;
 	accounting.missedUnits = actorEmpoweredUnits;
-	const crossedActorBeforeDeletion = orb.deletedBy
-		? crossedSourceActorBefore(report, orb, cast, orb.deletedBy.time)
+	const deletionCandidate = orb.deletionCandidate;
+	const crossedActorBeforeDeletion = deletionCandidate
+		? crossedSourceActorBefore(report, orb, cast, deletionCandidate.time)
 		: false;
-	const lateDeletingPlayerApplication = orb.deletedBy
+	const lateDeletingPlayerApplication = deletionCandidate
 		? hasInsatiableApplicationAfterContact(
 				report,
-				orb.deletedBy.player,
-				orb.deletedBy.time,
+				deletionCandidate.player,
+				deletionCandidate.time,
 				orb.endTime,
 			)
 		: false;
@@ -888,47 +899,45 @@ const resolveOutcome = (
 		!lateDeletingPlayerApplication &&
 		phaseDespawnedAt === undefined &&
 		!mechanicEnded &&
-		orb.deletedBy?.evidence === "terminal-contact" &&
+		deletionCandidate?.evidence === "terminal-contact" &&
 		remainingUnits > 0
 	) {
 		orb.outcome = "deleted";
 		accounting.deletedUnits = remainingUnits;
 		const deletionTouch = orb.inferredTouches.find(
 			(touch) =>
-				touch.player === orb.deletedBy?.player &&
-				touch.time === orb.deletedBy.time &&
-				touch.priorPickupTime === orb.deletedBy.priorPickupTime,
+				touch.player === deletionCandidate.player &&
+				touch.time === deletionCandidate.time &&
+				touch.priorPickupTime === deletionCandidate.priorPickupTime,
 		);
 		if (deletionTouch) {
-			orb.deletionEvidence = {
+			orb.events.push({
+				type: "delete",
+				player: deletionCandidate.player,
+				time: deletionCandidate.time,
+				priorPickupTime: deletionCandidate.priorPickupTime,
+				priorOrbIndex: deletionCandidate.priorOrbIndex,
+				evidence: deletionCandidate.evidence,
+				units: remainingUnits,
+				proof: {
 				priorInsatiableConfirmed: true,
 				noTargetInsatiableApplication: true,
 				noActorEmpoweredTransition: true,
 				uniqueTerminalContact: true,
 				actorPathClear: true,
 				priorPickupDeltaMs:
-					orb.deletedBy.time - orb.deletedBy.priorPickupTime,
-				terminalDeltaMs: orb.endTime - orb.deletedBy.time,
+					deletionCandidate.time - deletionCandidate.priorPickupTime,
+				terminalDeltaMs: orb.endTime - deletionCandidate.time,
 				contactDistance: deletionTouch.distance,
-			};
+				},
+			});
 		}
 	} else if (observedUnits >= ORB_REQUIRED_UNITS) {
 		// A fully observed three-unit ledger disproves any positional deletion
 		// candidate produced by overlapping terminal paths.
-		delete orb.deletedBy;
+		delete orb.deletionCandidate;
 		orb.inferredTouches = [];
-		const actorTransition = orb.empoweredTransitions[0];
-		if (actorTransition?.target === "Cerus") {
-			orb.absorbedBy = "Cerus";
-			orb.absorptionEvidence = "empowered-stack";
-			orb.outcome = "missed";
-		} else if (actorTransition) {
-			orb.absorbedBy = actorTransition.target;
-			orb.absorptionEvidence = "empowered-stack";
-			orb.outcome = "missed";
-		} else {
-			orb.outcome = "collected";
-		}
+		orb.outcome = empoweredEvents(orb).length > 0 ? "missed" : "collected";
 	} else {
 		orb.outcome = "unresolved";
 		orb.unresolvedReason = phaseDespawnedAt !== undefined
@@ -967,6 +976,8 @@ const resolveOutcome = (
 const toPublicOrb = ({
 	decoration: _decoration,
 	globalIndex: _globalIndex,
+	inferredTouches: _inferredTouches,
+	deletionCandidate: _deletionCandidate,
 	...orb
 }: OrbWithDecoration): InsatiableOrb => orb;
 
@@ -1034,9 +1045,9 @@ const buildCollectDetails = (
 		const players: InsatiableHungerCollect["players"] = {};
 		let collectedUnits = 0;
 		for (const orb of orbs) {
-			for (const pickup of orb.playerPickups) {
+			for (const pickup of pickupEvents(orb)) {
 				if (remainingObservedCapacity === 0) break;
-				const units = Math.min(remainingObservedCapacity, pickup.stackDelta);
+				const units = Math.min(remainingObservedCapacity, 1);
 				const player = players[pickup.player] ?? {
 					collectedUnits: 0,
 					deletedUnits: 0,
@@ -1050,18 +1061,19 @@ const buildCollectDetails = (
 
 		let deletedUnits = 0;
 		for (const orb of orbs) {
-			if (!orb.deletedBy || remainingObservedCapacity === 0) continue;
+			const deletion = deleteEvent(orb);
+			if (!deletion || remainingObservedCapacity === 0) continue;
 			const units = Math.min(
 				remainingObservedCapacity,
 				orb.accounting.deletedUnits,
 			);
 			if (units === 0) continue;
-			const player = players[orb.deletedBy.player] ?? {
+			const player = players[deletion.player] ?? {
 				collectedUnits: 0,
 				deletedUnits: 0,
 			};
 			player.deletedUnits += units;
-			players[orb.deletedBy.player] = player;
+			players[deletion.player] = player;
 			deletedUnits += units;
 			remainingObservedCapacity -= units;
 		}
@@ -1163,16 +1175,22 @@ export const trackInsatiableHungerOrbs = (
 		};
 	}
 
-	const rawCollects = matchExpectedCollects(report);
-	const casts = getHungerCasts(report);
+	const { rawCollects, casts: rawCasts } = matchExpectedCollects(report);
+	const casts = getHungerCasts(rawCollects, rawCasts);
 	const allDecoratedOrbs = getLargeOrbDecorations(combatReplay)
 		.sort((a, b) => a.start - b.start)
 		.map((decoration, index) => createOrb(decoration, index))
 		.filter((orb): orb is OrbWithDecoration => orb !== null);
-	const collectByOrb = new Map<number, InsatiableHungerRawCollect>();
 	const usedOrbKeys = new Set<number>();
 	const orbs: OrbWithDecoration[] = [];
+	const allEmpoweredTransitions = getInsatiableMissedTransitions(report);
+	const empoweredTransitions: InsatiableEmpoweredTransition[] = [];
+	const unassignedPlayerApplications: InsatiableUnassignedPlayerApplication[] = [];
+
 	for (const collect of rawCollects) {
+		// A collect is an independent evidence boundary. Decorations, Ins.A,
+		// Emp.A, deletion proof, and unresolved units never compete with another
+		// collect, even when their visual paths happen to be nearby.
 		const candidates = allDecoratedOrbs
 			.filter(
 				(orb) =>
@@ -1184,75 +1202,54 @@ export const trackInsatiableHungerOrbs = (
 			.slice(0, collect.expectedOrbCount);
 		for (const orb of candidates) {
 			usedOrbKeys.add(orb.globalIndex);
-			collectByOrb.set(orb.globalIndex, collect);
+			orb.collectName = collect.name;
 			orbs.push(orb);
 		}
-	}
-	const empoweredTransitions = getInsatiableMissedTransitions(report).filter(
-		(transition) =>
-			rawCollects.some(
-				(collect) =>
-					transition.time >= collect.searchWindow[0] &&
-					transition.time <= collect.searchWindow[1],
-			),
-	);
 
-	// Jian Sheng's required evidence order: missed actor units first, confirmed
-	// player collections second, deletion inference only after both are fixed.
-	assignEmpoweredTransitions(
-		orbs,
-		empoweredTransitions,
-	);
-	const empoweredReservations: ProvisionalEmpoweredReservations = new Map(
-		orbs.map((orb) => [orb.globalIndex, getActorUnits(orb)]),
-	);
-	const pickupAssignments = assignPickupEvents(
-		report,
-		orbs,
-		empoweredReservations,
-		rawCollects,
-	);
-	const inferTouches = () => {
-		for (const orb of orbs) {
-			const collect = collectByOrb.get(orb.globalIndex);
-			if (!collect) continue;
-			const collectOrbs = orbs.filter(
-				(candidate) => collectByOrb.get(candidate.globalIndex) === collect,
-			);
-			const observedUnits = collectOrbs.reduce(
-				(total, candidate) =>
-					total + getPlayerUnits(candidate) + getActorUnits(candidate),
-				0,
-			);
-			orb.inferredTouches = [];
-			delete orb.deletedBy;
-			if (observedUnits === collect.expectedOrbCount * ORB_REQUIRED_UNITS) {
-				continue;
-			}
-			orb.inferredTouches = inferTerminalTouches(
-				report,
-				orb,
-				pickupAssignments.byPlayer,
-			);
-		}
-	};
-	inferTouches();
-	for (const orb of orbs) {
-		if (
-			getPlayerUnits(orb) + getActorUnits(orb) >= ORB_REQUIRED_UNITS ||
-			orb.inferredTouches.length > 0
-		) {
-			continue;
-		}
-		orb.inferredTouches = inferCausalTouches(
-			report,
-			orb,
-			pickupAssignments.byPlayer,
+		const collectTransitions = allEmpoweredTransitions.filter(
+			(transition) =>
+				transition.time >= collect.searchWindow[0] &&
+				transition.time <= collect.searchWindow[1],
 		);
-	}
-	for (const orb of orbs) {
-		const collect = collectByOrb.get(orb.globalIndex);
-		const cast = casts
+		empoweredTransitions.push(...collectTransitions);
+		assignEmpoweredTransitions(candidates, collectTransitions);
+		const empoweredReservations: ProvisionalEmpoweredReservations = new Map(
+			candidates.map((orb) => [orb.globalIndex, getActorUnits(orb)]),
+		);
+		const pickupAssignments = assignPickupEvents(
+			report,
+			candidates,
+			empoweredReservations,
+			collect,
+		);
+		unassignedPlayerApplications.push(...pickupAssignments.unassigned);
+
+		const observedUnits = candidates.reduce(
+			(total, orb) => total + getPlayerUnits(orb) + getActorUnits(orb),
+			0,
+		);
+		const fullyResolvedWithoutDeletion =
+			observedUnits === collect.expectedOrbCount * ORB_REQUIRED_UNITS;
+		if (!fullyResolvedWithoutDeletion) {
+			for (const orb of candidates) {
+				if (getPlayerUnits(orb) + getActorUnits(orb) >= ORB_REQUIRED_UNITS) continue;
+				orb.inferredTouches = inferTerminalTouches(
+					report,
+					orb,
+					pickupAssignments.byPlayer,
+				);
+				if (orb.inferredTouches.length === 0) {
+					orb.inferredTouches = inferCausalTouches(
+						report,
+						orb,
+						pickupAssignments.byPlayer,
+					);
+				}
+			}
+		}
+
+		for (const orb of candidates) {
+			const cast = casts
 			.filter((candidate) => candidate.collectName === collect?.name)
 			.map((candidate) => ({
 				candidate,
@@ -1261,6 +1258,7 @@ export const trackInsatiableHungerOrbs = (
 			.sort((a, b) => a.delta - b.delta)[0]?.candidate;
 		if (!cast) continue;
 		cast.orbs.push(orb);
+		}
 	}
 
 	for (const cast of casts) {
@@ -1280,7 +1278,7 @@ export const trackInsatiableHungerOrbs = (
 		collects,
 		casts: publicCasts,
 		empoweredTransitions,
-		unassignedPlayerApplications: pickupAssignments.unassigned,
+		unassignedPlayerApplications,
 		accounting: summarizeInsatiableCollects(collects),
 	};
 };

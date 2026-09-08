@@ -124,14 +124,17 @@ const OutcomeBadge = ({ outcome }: { outcome: InsatiableOrbOutcome }) => (
 );
 
 const OrbLedger = ({ orb }: { orb: InsatiableOrb }) => {
+	const pickups = orb.events.filter((event) => event.type === "pickup");
+	const empowered = orb.events.filter((event) => event.type === "empowered");
+	const deletion = orb.events.find((event) => event.type === "delete");
 	const entries = [
-		...orb.playerPickups.map((pickup) => ({
+		...pickups.map((pickup) => ({
 			key: `pickup-${pickup.player}-${pickup.time}`,
 			label: `${pickup.player} · ${seconds(pickup.time)}`,
 			className:
 				"border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 		})),
-		...orb.empoweredTransitions.map((transition) => ({
+		...empowered.map((transition) => ({
 			key: `empowered-${transition.target}-${transition.time}`,
 			label: `${transition.target} +${transition.assignedUnits ?? transition.stackDelta} · ${seconds(transition.time)}`,
 			className:
@@ -139,12 +142,10 @@ const OrbLedger = ({ orb }: { orb: InsatiableOrb }) => {
 		})),
 	];
 
-	if (orb.accounting.deletedUnits > 0) {
+	if (deletion) {
 		entries.push({
 			key: "deleted",
-			label: orb.deletedBy
-				? `${orb.deletedBy.player} deleted +${orb.accounting.deletedUnits} · ${seconds(orb.deletedBy.time)}`
-				: `Deleted +${orb.accounting.deletedUnits}`,
+			label: `${deletion.player} deleted +${deletion.units} · ${seconds(deletion.time)}`,
 			className:
 				"border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400",
 		});
@@ -227,10 +228,10 @@ const CastGroup = ({ cast }: { cast: InsatiableHungerCast }) => {
 								<OutcomeBadge outcome={orb.outcome} />
 							</TableCell>
 							<TableCell className="text-right text-xs text-muted-foreground tabular-nums">
-								<div>{seconds(orb.terminalTime)}</div>
+								<div>{seconds(orb.endTime)}</div>
 								<div>
-									{orb.terminalPosition[0].toFixed(1)},{" "}
-									{orb.terminalPosition[1].toFixed(1)}
+									{orb.endPosition[0].toFixed(1)},{" "}
+									{orb.endPosition[1].toFixed(1)}
 								</div>
 							</TableCell>
 						</TableRow>
@@ -353,6 +354,17 @@ const CollectMatrix = ({
 		}),
 		{ missed: 0, unresolved: 0, expected: 0, deleted: 0 },
 	);
+	const phaseGroups = matrix.columns.reduce<
+		{ phase: string; colSpan: number }[]
+	>((groups, column) => {
+		const previous = groups.at(-1);
+		if (previous?.phase === column.phase) {
+			previous.colSpan += 1;
+		} else {
+			groups.push({ phase: column.phase, colSpan: 1 });
+		}
+		return groups;
+	}, []);
 
 	return (
 		<div className="overflow-x-auto rounded-lg border">
@@ -362,16 +374,20 @@ const CollectMatrix = ({
 			<Table>
 				<TableHeader className="bg-muted/15">
 					<TableRow>
-						<TableHead className="sticky left-0 min-w-36 bg-background">Player / outcome</TableHead>
-						{matrix.columns.map((column) => (
-							<TableHead key={column.key} className="min-w-32 text-right">
-								<div>{column.phase}</div>
-								<div className="text-xs font-normal text-muted-foreground">
-									{column.name}
-								</div>
+						<TableHead rowSpan={2} className="sticky left-0 min-w-36 bg-background">Player / outcome</TableHead>
+						{phaseGroups.map((group) => (
+							<TableHead key={group.phase} colSpan={group.colSpan} className="text-center">
+								{group.phase}
 							</TableHead>
 						))}
-						<TableHead className="min-w-24 text-right">Final totals</TableHead>
+						<TableHead rowSpan={2} className="min-w-24 text-right">Final totals</TableHead>
+					</TableRow>
+					<TableRow>
+						{matrix.columns.map((column) => (
+							<TableHead key={column.key} className="min-w-32 text-right">
+								<div className="text-xs font-normal text-muted-foreground">{column.name}</div>
+							</TableHead>
+						))}
 					</TableRow>
 				</TableHeader>
 				<TableBody>

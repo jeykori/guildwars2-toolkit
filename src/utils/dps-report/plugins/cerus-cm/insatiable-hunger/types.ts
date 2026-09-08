@@ -68,12 +68,6 @@ export type InsatiableOrbPosition = readonly [number, number];
 export type InsatiableOrbPickup = {
 	player: string;
 	time: number;
-	/** Number of Insatiable stacks added by this confirmed application. */
-	stackDelta: number;
-	/** Player stack value immediately before this application, when available. */
-	stackBefore?: number;
-	/** Player stack value immediately after this application, when available. */
-	stackAfter?: number;
 	/** Distance from the player to the orb path at the event time. */
 	distance: number | null;
 	/** Evidence used to associate this confirmed stack event with this orb. */
@@ -115,6 +109,21 @@ export type InsatiableDeletionEvidence = {
 	contactDistance: number;
 };
 
+/** Every observed unit is kept with the event that proved it. */
+export type InsatiableOrbEvent =
+	| ({ type: "pickup" } & InsatiableOrbPickup)
+	| ({ type: "empowered" } & InsatiableEmpoweredTransition)
+	| {
+			type: "delete";
+			player: string;
+			time: number;
+			priorPickupTime: number;
+			priorOrbIndex: number;
+			evidence: "terminal-contact" | "causal-contact";
+			units: number;
+			proof: InsatiableDeletionEvidence;
+		};
+
 export type InsatiableOrbAccounting = {
 	requiredUnits: number;
 	/** Units proven by Ins.A mechanic applications. */
@@ -144,34 +153,19 @@ export type InsatiableUnassignedPlayerApplication = {
 
 export type InsatiableOrb = {
 	index: number;
+	collectName: string;
 	spawnTime: number;
 	endTime: number;
 	spawnPosition: InsatiableOrbPosition;
 	endPosition: InsatiableOrbPosition;
-	playerPickups: InsatiableOrbPickup[];
-	/** A player-side touch with no matching Ins.A application. */
-	inferredTouches: InsatiableOrbTouch[];
-	empoweredTransitions: InsatiableEmpoweredTransition[];
+	events: InsatiableOrbEvent[];
 	collectionCount: number;
 	collectionState: InsatiableOrbCollectionState;
 	accounting: InsatiableOrbAccounting;
 	outcome: InsatiableOrbOutcome;
 	/** Null for resolved outcomes; required with a concrete reason when unresolved. */
 	unresolvedReason: InsatiableUnresolvedReason | null;
-	deletedBy?: {
-		player: string;
-		time: number;
-		priorPickupTime: number;
-		priorOrbIndex: number;
-		evidence: "terminal-contact" | "causal-contact";
-	};
-	/** Complete proof chain required before deletedUnits may be non-zero. */
-	deletionEvidence?: InsatiableDeletionEvidence;
-	absorbedBy?: string;
-	absorptionEvidence?: "empowered-stack";
 	phaseDespawnedAt?: number;
-	terminalTime: number;
-	terminalPosition: InsatiableOrbPosition;
 };
 
 export type InsatiableHungerCast = {

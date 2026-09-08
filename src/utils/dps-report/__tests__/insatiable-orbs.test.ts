@@ -52,7 +52,9 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		expect(
 			tracked.casts.map((cast) =>
 				cast.orbs.map((orb) =>
-					orb.playerPickups.map((pickup) => pickup.player),
+					orb.events
+						.filter((event) => event.type === "pickup")
+						.map((event) => event.player),
 				),
 			),
 		).toEqual([
@@ -89,7 +91,9 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		const terminalPickup = tracked.casts
 			.flatMap((cast) => cast.orbs)
 			.flatMap((orb) =>
-				orb.playerPickups.map((pickup) => ({ orb, pickup })),
+				orb.events
+					.filter((event) => event.type === "pickup")
+					.map((pickup) => ({ orb, pickup })),
 			)
 			.find(({ orb, pickup }) => pickup.time === orb.endTime);
 		if (!terminalPickup) {
@@ -112,8 +116,9 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		const delayedOrb = result.casts
 			.flatMap((cast) => cast.orbs)
 			.find((orb) => orb.spawnTime === terminalPickup.orb.spawnTime);
-		expect(delayedOrb?.playerPickups).toContainEqual(
+		expect(delayedOrb?.events).toContainEqual(
 			expect.objectContaining({
+				type: "pickup",
 				player: terminalPickup.pickup.player,
 				time: terminalPickup.pickup.time + 500,
 				attribution: "terminal-time",
@@ -149,8 +154,8 @@ describe("Insatiable Hunger orb lifecycle", () => {
 					.map((orb) => ({
 						cast: cast.castTime,
 						orb: orb.index,
-						player: orb.deletedBy?.player,
-						priorPickupTime: orb.deletedBy?.priorPickupTime,
+						player: orb.events.find((event) => event.type === "delete")?.player,
+						priorPickupTime: orb.events.find((event) => event.type === "delete")?.priorPickupTime,
 					})),
 			),
 		).toEqual([
@@ -160,15 +165,16 @@ describe("Insatiable Hunger orb lifecycle", () => {
 
 		for (const cast of tracked.casts) {
 			for (const orb of cast.orbs) {
-				if (orb.outcome !== "deleted" || !orb.deletedBy) continue;
-				expect(orb.deletionEvidence).toMatchObject({
+				const deletion = orb.events.find((event) => event.type === "delete");
+				if (orb.outcome !== "deleted" || !deletion) continue;
+				expect(deletion.proof).toMatchObject({
 					priorInsatiableConfirmed: true,
 					noTargetInsatiableApplication: true,
 					noActorEmpoweredTransition: true,
 					uniqueTerminalContact: true,
 					actorPathClear: true,
 				});
-				const delta = orb.deletedBy.time - orb.deletedBy.priorPickupTime;
+				const delta = deletion.time - deletion.priorPickupTime;
 				expect(delta).toBeGreaterThanOrEqual(0);
 				expect(delta).toBeLessThanOrEqual(1_000);
 			}
@@ -180,17 +186,15 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		if (!finalOrb) throw new Error("Fixture is missing the final orb");
 
 		expect(finalOrb.outcome).toBe("missed");
-		expect(finalOrb.absorbedBy).toBe("Cerus");
 		expect(finalOrb.endTime).toBe(237470);
-		expect(finalOrb.empoweredTransitions).toEqual([
-			{
-				target: "Cerus",
-				source: "Emp.A",
-				time: 237470,
-				stackDelta: 1,
-				assignedUnits: 1,
-			},
-		]);
+		expect(finalOrb.events).toContainEqual({
+			type: "empowered",
+			target: "Cerus",
+			source: "Emp.A",
+			time: 237470,
+			stackDelta: 1,
+			assignedUnits: 1,
+		});
 	});
 
 	it("does not call causal deletion evidence an absorption without Empowered", () => {
@@ -236,7 +240,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		if (!finalOrb) throw new Error("Fixture is missing the final orb");
 
 		expect(finalOrb.outcome).toBe("missed");
-		expect(finalOrb.empoweredTransitions).toContainEqual(
+		expect(finalOrb.events).toContainEqual(
 			expect.objectContaining({ time: 237970, assignedUnits: 1 }),
 		);
 	});

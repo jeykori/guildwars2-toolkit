@@ -17,11 +17,17 @@ const verifyKnownAttributions = (
 	const finalOrb = set5?.orbs[2];
 	if (
 		empoweredOrb?.accounting.missedUnits !== 1 ||
-		empoweredOrb.empoweredTransitions[0]?.time !== 233631 ||
-		empoweredOrb.playerPickups.map(({ player }) => player).join(",") !==
+		empoweredOrb.events.find((event) => event.type === "empowered")?.time !== 233631 ||
+		empoweredOrb.events
+			.filter((event) => event.type === "pickup")
+			.map(({ player }) => player)
+			.join(",") !==
 			"Player 4,Player 2" ||
 		finalOrb?.accounting.deletedUnits !== 0 ||
-		finalOrb.playerPickups.map(({ player }) => player).join(",") !==
+		finalOrb.events
+			.filter((event) => event.type === "pickup")
+			.map(({ player }) => player)
+			.join(",") !==
 			"Player 3,Player 1,Player 8"
 	) {
 		throw new Error("vPO0 Set 5 orb attribution regressed");
@@ -72,7 +78,8 @@ for (let index = 1; index <= SESSION_LOG_COUNT; index += 1) {
 		}
 		if (
 			orb.accounting.deletedUnits > 0 &&
-			(orb.accounting.missedUnits > 0 || !orb.deletionEvidence)
+			(orb.accounting.missedUnits > 0 ||
+				!orb.events.some((event) => event.type === "delete" && event.proof))
 		) {
 			throw new Error(`${sessionLog.id} contains an unproven deletion`);
 		}
