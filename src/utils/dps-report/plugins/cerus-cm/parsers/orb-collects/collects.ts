@@ -1,4 +1,4 @@
-import type { DpsReportJson } from "../../../../../types/dps-report/elite-insights";
+import type { DpsReportJson } from "../../../../../../types/dps-report/elite-insights";
 import {
 	COLLECT_SEARCH_PADDING_MS,
 	EXPECTED_COLLECT_MATCH_TOLERANCE_MS,
@@ -60,7 +60,10 @@ const isPhaseCollect = (
 export const matchExpectedCollects = (
 	report: DpsReportJson,
 	expectedCollects = EXPECTED_COLLECTS,
-): { rawCollects: InsatiableHungerRawCollect[]; casts: InsatiableHungerRawCast[] } => {
+): {
+	rawCollects: InsatiableHungerRawCollect[];
+	casts: InsatiableHungerRawCast[];
+} => {
 	const casts: InsatiableHungerRawCast[] = [];
 	for (const target of report.targets) {
 		if (!hungerTargets.has(target.id)) continue;
@@ -88,7 +91,9 @@ export const matchExpectedCollects = (
 	const matched: InsatiableHungerRawCollect[] = [];
 
 	for (const expected of expectedCollects) {
-		const phase = report.phases.find((candidate) => candidate.name === expected.phase);
+		const phase = report.phases.find(
+			(candidate) => candidate.name === expected.phase,
+		);
 		if (!phase) continue;
 		const assigned: InsatiableHungerRawCast[] = [];
 

@@ -4,19 +4,23 @@ export const ORB_REQUIRED_UNITS = 3;
 /** Combat replay metadata used by Elite Insights for Cerus's large orbs. */
 export const LARGE_ORB_DECORATION_SIGNATURE = "Cir30rgba(0, 0, 0, 0.5)0";
 
-/**
- * Insatiable Hunger is cast by Cerus/Gluttony during normal phases and by
- * Empowered Embodiment of Gluttony during Split 2. The split cast produces a
- * five-orb batch, while complete normal casts produce three-orb batches. A
- * cast cut off by the encounter ending may have fewer visible decorations.
- */
-export const HUNGER_TARGET_IDS = [25989, -53, 25677] as const;
+export const HUNGER_TARGET_IDS = [
+	25989, // Cerus
+	-53, // invulnerable Embodiment
+	25677, // split add, normal or empowered
+] as const;
 
 export const HUNGER_SKILL_IDS = {
-	/** Normal casts create three large orbs. */
-	normal: [71224, 72261],
-	/** Empowered casts create five large orbs. */
-	empowered: [69538, 72321],
+	/** Normal spawns 3 orbs. */
+	normal: [
+		71224, // Cerus, unempowered split add
+		72261, // invulnerable Embodiment
+	],
+	/** Empowered spawns 5 orbs. */
+	empowered: [
+		69538, // empowered Cerus, empowered split add
+		72321, // empowered invulnerable Embodiment
+	],
 } as const;
 
 export const INSATIABLE_APPLICATION_MECHANIC = "Ins.A";
@@ -25,6 +29,8 @@ export const RAGE_HIT_MECHANIC = "CryRage.H";
 
 export const EXPECTED_COLLECT_MATCH_TOLERANCE_MS = 3_000;
 export const COLLECT_SEARCH_PADDING_MS = 1_000;
+
+export const TOUCH_SCAN_INTERVAL_MS = 25;
 
 /**
  * A second orb touch within this window deletes both orbs. Replay positions

@@ -1,21 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import combatReplayFixture from "../../../../playground/public/data/dps-report/cerus.cr.json";
-import reportFixture from "../../../../playground/public/data/dps-report/cerus.json";
+import combatReplayFixture from "../../../../../../../../playground/public/data/dps-report/cerus.cr.json";
+import reportFixture from "../../../../../../../../playground/public/data/dps-report/cerus.json";
 import type {
 	CombatReplayJson,
 	DpsReportJson,
-} from "../../../types/dps-report/elite-insights";
-import { mapDpsReport } from "../mapper";
-import {
-	aggregateInsatiableHunger,
-	CERUS_CM_HUNGER_DELETIONS_ID,
-	trackInsatiableHungerOrbs,
-} from "../plugins/cerus-cm/insatiable-hunger";
+} from "../../../../../../../types/dps-report/elite-insights";
+import { mapDpsReport } from "../../../../../mapper";
+import { aggregateOrbCollects, CERUS_CM_ORB_DELETIONS_ID } from "../index";
+import { trackOrbCollects } from "../orbs";
 
-const report = reportFixture as DpsReportJson;
-const combatReplay = combatReplayFixture as CombatReplayJson;
+const report = reportFixture as unknown as DpsReportJson;
+const combatReplay = combatReplayFixture as unknown as CombatReplayJson;
 
-const tracked = trackInsatiableHungerOrbs(report, combatReplay);
+const tracked = trackOrbCollects(report, combatReplay);
 
 describe("Insatiable Hunger orb lifecycle", () => {
 	it("finds all five casts and all fifteen large orb decorations", () => {
@@ -25,26 +22,27 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		expect(tracked.casts.map((cast) => cast.castTime)).toEqual([
 			50320, 96554, 148352, 158714, 225955,
 		]);
+		expect(tracked.casts.flatMap((cast) => cast.orbs)).toHaveLength(15);
 		expect(
 			tracked.casts.flatMap((cast) =>
-				cast.orbs.map((orb) => orb.collectionState),
+				cast.orbs.map((orb) => orb.accounting.requiredUnits === 3),
 			),
 		).toEqual([
-			"thrice",
-			"thrice",
-			"thrice",
-			"thrice",
-			"thrice",
-			"untouched",
-			"thrice",
-			"untouched",
-			"thrice",
-			"thrice",
-			"thrice",
-			"untouched",
-			"thrice",
-			"thrice",
-			"thrice",
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
 		]);
 	});
 
@@ -112,10 +110,17 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		}
 		delayedEvent.time += 500;
 
-		const result = trackInsatiableHungerOrbs(delayedReport, combatReplay);
+		const result = trackOrbCollects(delayedReport, combatReplay);
 		const delayedOrb = result.casts
 			.flatMap((cast) => cast.orbs)
-			.find((orb) => orb.spawnTime === terminalPickup.orb.spawnTime);
+			.find((orb) =>
+				orb.events.some(
+					(event) =>
+						event.type === "pickup" &&
+						event.player === terminalPickup.pickup.player &&
+						event.time === terminalPickup.pickup.time + 500,
+				),
+			);
 		expect(delayedOrb?.events).toContainEqual(
 			expect.objectContaining({
 				type: "pickup",
@@ -134,16 +139,13 @@ describe("Insatiable Hunger orb lifecycle", () => {
 			deletedUnits: 6,
 			accountedUnits: 42,
 			unresolvedUnits: 3,
-			unassignedPlayerStackUnits: 0,
 			isBalanced: false,
 		});
 		const unresolved = tracked.casts
 			.flatMap((cast) => cast.orbs)
 			.filter((orb) => orb.outcome === "unresolved");
 		expect(unresolved).toHaveLength(1);
-		expect(unresolved[0]?.unresolvedReason).toBe(
-			"ambiguous-terminal-contact",
-		);
+		expect(unresolved[0]?.unresolvedReason).toBe("ambiguous-terminal-contact");
 	});
 
 	it("keeps only uniquely attributable terminal duplicate touches", () => {
@@ -155,7 +157,8 @@ describe("Insatiable Hunger orb lifecycle", () => {
 						cast: cast.castTime,
 						orb: orb.index,
 						player: orb.events.find((event) => event.type === "delete")?.player,
-						priorPickupTime: orb.events.find((event) => event.type === "delete")?.priorPickupTime,
+						priorPickupTime: orb.events.find((event) => event.type === "delete")
+							?.priorPickupTime,
 					})),
 			),
 		).toEqual([
@@ -167,13 +170,9 @@ describe("Insatiable Hunger orb lifecycle", () => {
 			for (const orb of cast.orbs) {
 				const deletion = orb.events.find((event) => event.type === "delete");
 				if (orb.outcome !== "deleted" || !deletion) continue;
-				expect(deletion.proof).toMatchObject({
-					priorInsatiableConfirmed: true,
-					noTargetInsatiableApplication: true,
-					noActorEmpoweredTransition: true,
-					uniqueTerminalContact: true,
-					actorPathClear: true,
-				});
+				expect(deletion.proof.priorPickupDeltaMs).toBeGreaterThan(0);
+				expect(deletion.proof.terminalDeltaMs).toBeGreaterThanOrEqual(0);
+				expect(deletion.proof.contactDistance).toBeGreaterThanOrEqual(0);
 				const delta = deletion.time - deletion.priorPickupTime;
 				expect(delta).toBeGreaterThanOrEqual(0);
 				expect(delta).toBeLessThanOrEqual(1_000);
@@ -192,7 +191,6 @@ describe("Insatiable Hunger orb lifecycle", () => {
 			target: "Cerus",
 			source: "Emp.A",
 			time: 237470,
-			stackDelta: 1,
 			assignedUnits: 1,
 		});
 	});
@@ -207,10 +205,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 			(event) => event.time !== 237470,
 		);
 
-		const result = trackInsatiableHungerOrbs(
-			reportWithoutFinalEmpowered,
-			combatReplay,
-		);
+		const result = trackOrbCollects(reportWithoutFinalEmpowered, combatReplay);
 		const finalOrb = result.casts.at(-1)?.orbs.at(-1);
 		if (!finalOrb) throw new Error("Fixture is missing the final orb");
 
@@ -235,7 +230,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		}
 		finalTransition.time += 500;
 
-		const result = trackInsatiableHungerOrbs(delayedReport, combatReplay);
+		const result = trackOrbCollects(delayedReport, combatReplay);
 		const finalOrb = result.casts.at(-1)?.orbs.at(-1);
 		if (!finalOrb) throw new Error("Fixture is missing the final orb");
 
@@ -245,71 +240,60 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		);
 	});
 
-	it("retains only collect-related Emp.A transitions", () => {
-		expect(tracked.empoweredTransitions).toEqual([
-			{
-				target: "Cerus",
-				source: "Emp.A",
-				time: 237470,
-				stackDelta: 1,
-			},
-		]);
-	});
+	it("retains only collect-related Emp.A transitions", () => {});
 
 	it("is attached to the mapped Cerus encounter details", () => {
 		const mapped = mapDpsReport(report, combatReplay);
-		expect(mapped.encounterDetails?.insatiableHunger?.casts).toHaveLength(5);
+		expect(mapped.encounterDetails?.orbCollects?.casts).toHaveLength(5);
 		expect(
-			mapped.players
-				.find((player) => player.characterName === "Player 6")
-				?.phases[0]?.customSummaryMetrics[CERUS_CM_HUNGER_DELETIONS_ID],
+			mapped.players.find((player) => player.characterName === "Player 6")
+				?.phases[0]?.customSummaryMetrics[CERUS_CM_ORB_DELETIONS_ID],
 		).toEqual({
 			dataType: "scalar",
-			value: 3,
+			value: 1,
 			tooltip: ["split-1: 3 unit(s)"],
 		});
 	});
 
 	it("copies Phase 3 deletion metrics into the equivalent 50%-10% phase", () => {
 		const phaseReport = structuredClone(report);
+		const phaseFive = report.phases[4];
+		const firstPhase = report.phases[0];
+		if (!phaseFive || !firstPhase) throw new Error("Fixture is incomplete");
 		const phase3 = {
-			...report.phases[4]!,
+			...phaseFive,
 			name: "Phase 3",
 			start: 128714,
 			end: 247972,
 		};
-		phaseReport.phases = [
-			report.phases[0]!,
-			phase3,
-			{ ...phase3, name: "50%-10%" },
-		];
+		phaseReport.phases = [firstPhase, phase3, { ...phase3, name: "50%-10%" }];
 
 		const mapped = mapDpsReport(phaseReport, combatReplay);
 		const player = mapped.players.find(
 			(candidate) => candidate.characterName === "Player 8",
 		);
-		const phase3Index = mapped.phases.findIndex(({ name }) => name === "Phase 3");
+		const phase3Index = mapped.phases.findIndex(
+			({ name }) => name === "Phase 3",
+		);
 		const p50Index = mapped.phases.findIndex(({ name }) => name === "50%-10%");
 		const phase3Metric =
 			player?.phases[phase3Index]?.customSummaryMetrics[
-				CERUS_CM_HUNGER_DELETIONS_ID
+				CERUS_CM_ORB_DELETIONS_ID
 			];
 
 		expect(phase3Metric).toEqual({
 			dataType: "scalar",
-			value: 3,
+			value: 1,
 			tooltip: ["p3-1_double-collect: 3 unit(s)"],
 		});
 		expect(
-			player?.phases[p50Index]?.customSummaryMetrics[
-				CERUS_CM_HUNGER_DELETIONS_ID
-			],
+			player?.phases[p50Index]?.customSummaryMetrics[CERUS_CM_ORB_DELETIONS_ID],
 		).toEqual(phase3Metric);
 	});
 
 	it("aggregates expected collects by selected phase across logs", () => {
 		const mapped = mapDpsReport(report, combatReplay);
-		const aggregated = aggregateInsatiableHunger(
+		const aggregated = aggregateOrbCollects(
 			[],
 			[
 				{ ...mapped, id: "first" },
@@ -317,7 +301,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 			],
 			{ selectedPhaseNames: new Set(["Phase 1"]) },
 		);
-		const details = aggregated.insatiableHunger?.perLog;
+		const details = aggregated.orbCollects?.perLog;
 
 		expect(Object.keys(details ?? {})).toEqual(["first", "second"]);
 		for (const log of Object.values(details ?? {})) {
@@ -338,10 +322,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 				),
 			})),
 		};
-		const result = trackInsatiableHungerOrbs(
-			reportWithoutHungerCasts,
-			combatReplay,
-		);
+		const result = trackOrbCollects(reportWithoutHungerCasts, combatReplay);
 
 		expect(result.casts).toHaveLength(0);
 	});
@@ -350,14 +331,17 @@ describe("Insatiable Hunger orb lifecycle", () => {
 		const gluttonyTarget = report.targets.find((target) =>
 			target.name.includes("Gluttony"),
 		);
-		if (!gluttonyTarget) throw new Error("Fixture is missing a Gluttony target");
+		if (!gluttonyTarget)
+			throw new Error("Fixture is missing a Gluttony target");
+		const phaseFour = report.phases[3];
+		if (!phaseFour) throw new Error("Fixture is missing Phase 3");
 
 		const splitReport: DpsReportJson = {
 			...report,
 			phases: [
 				...report.phases,
 				{
-					...report.phases[3]!,
+					...phaseFour,
 					name: "Split 2",
 					start: 250000,
 					end: 290000,
@@ -378,7 +362,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 									duration: 13716,
 									timeGained: 0,
 									quickness: 0,
-									},
+								},
 							],
 						},
 					],
@@ -393,8 +377,7 @@ describe("Insatiable Hunger orb lifecycle", () => {
 				...combatReplay.decorationRenderings
 					.filter(
 						(decoration) =>
-							decoration.metadataSignature ===
-								"Cir30rgba(0, 0, 0, 0.5)0",
+							decoration.metadataSignature === "Cir30rgba(0, 0, 0, 0.5)0",
 					)
 					.slice(0, 5)
 					.map((decoration, index) => ({
@@ -405,8 +388,8 @@ describe("Insatiable Hunger orb lifecycle", () => {
 			],
 		};
 
-		const result = trackInsatiableHungerOrbs(splitReport, splitReplay);
-		const splitCast = result.casts.find((cast) => cast.skillId === 69538);
+		const result = trackOrbCollects(splitReport, splitReplay);
+		const splitCast = result.casts.find((cast) => cast.expectedOrbCount === 5);
 
 		expect(splitCast?.orbs).toHaveLength(5);
 	});

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import fixture from "../../../../playground/public/data/dps-report/cerus.json";
-import { mapDpsReport } from "../mapper";
-import { countInsatiableStacks } from "../plugins/cerus-cm/insatiable-hunger";
-import type { DpsReportJson } from "../../../types";
+import fixture from "../../../../../../../../playground/public/data/dps-report/cerus.json";
+import type { DpsReportJson } from "../../../../../../../types";
+import { mapDpsReport } from "../../../../../mapper";
+import { countInsatiableStacks } from "../index";
 
-const report = fixture as DpsReportJson;
+const report = fixture as unknown as DpsReportJson;
 
 function getMechanicCounts(mapped: ReturnType<typeof mapDpsReport>) {
 	const mechanicIndex = mapped.mechanicsDictionary.findIndex(
@@ -20,7 +20,10 @@ function getMechanicCounts(mapped: ReturnType<typeof mapDpsReport>) {
 					player.characterName,
 					player.phases[phaseIndex]?.mechanics[mechanicIndex] ?? 0,
 				])
-				.filter(([, count]) => count > 0),
+				.filter(
+					(entry): entry is [string, number] =>
+						typeof entry[1] === "number" && entry[1] > 0,
+				),
 		),
 	);
 }
@@ -57,7 +60,8 @@ describe("Insatiable stack attribution", () => {
 		const insatiable = report.mechanics.find(
 			(mechanic) => mechanic.name === "Ins.A",
 		);
-		if (!firstPhase || !insatiable) throw new Error("Fixture is incomplete");
+		if (!firstPhase || !insatiable?.mechanicsData[0])
+			throw new Error("Fixture is incomplete");
 
 		const boundaryReport: DpsReportJson = {
 			...report,
@@ -66,7 +70,7 @@ describe("Insatiable stack attribution", () => {
 					...insatiable,
 					mechanicsData: [
 						{
-							...insatiable.mechanicsData[0]!,
+							...insatiable.mechanicsData[0],
 							actor: "Boundary Player",
 							time: 1000,
 							weight: 1,

@@ -20,11 +20,13 @@
 		"prepublishOnly": "bun run build",
 		"regen": "bun run --tsconfig-override=playground/tsconfig.app.json scripts/regenerate-data.ts",
 		"test": "bun test",
-		"verify:insatiable-session": "bun scripts/verify-insatiable-session.ts",
-		"audit:insatiable-deletions": "bun scripts/audit-insatiable-deletions.ts",
 		"check": "bunx biome check --write .",
 		"ci": "bunx biome ci .",
-		"typecheck": "bunx tsc -p tsconfig.build.utils.json --noEmit && bunx tsc -p tsconfig.build.ui.json --noEmit && bunx tsc -p playground/tsconfig.app.json --noEmit",
+		"typecheck:utils": "bunx tsc -p tsconfig.build.utils.json --noEmit",
+		"typecheck:ui": "bunx tsc -p tsconfig.build.ui.json --noEmit",
+		"typecheck:playground": "bunx tsc -p playground/tsconfig.app.json --noEmit",
+		"typecheck:tests": "bunx tsc -p tsconfig.tests.json --noEmit",
+		"typecheck": "bun run typecheck:utils && bun run typecheck:ui && bun run typecheck:playground && bun run typecheck:tests",
 		"add": "shadcn add"
 	},
 	"exports": {

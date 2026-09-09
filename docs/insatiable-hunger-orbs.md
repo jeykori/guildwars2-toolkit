@@ -12,16 +12,16 @@ eligible. Skills `71224` and `72261` expect three large orbs; empowered skills
 
 Phase casts are matched within ±3 seconds of these phase-relative times:
 
-| Phase | Collect | Seconds into phase |
-| --- | --- | --- |
-| Phase 1 | `p1-1_cerus` | 51 |
-| Phase 2 | `p2-1_double-collect` | 34, 44 |
-| Phase 2 | `p2-2_cerus` | 112 |
-| Phase 3 | `p3-1_double-collect` | 24, 30 |
-| Phase 3 | `p3-2_bad-collect_cerus` | 97 |
-| Phase 3 | `p3-3_rage_embodiment` | 114 |
-| Phase 3 | `p3-4_cerus` | 164 |
-| Phase 3 | `p3-5_green-phase_embodiment` | 204 |
+| Phase   | Collect                       | Seconds into phase |
+| ------- | ----------------------------- | ------------------ |
+| Phase 1 | `p1-1_cerus`                  | 51                 |
+| Phase 2 | `p2-1_double-collect`         | 34, 44             |
+| Phase 2 | `p2-2_cerus`                  | 112                |
+| Phase 3 | `p3-1_double-collect`         | 24, 30             |
+| Phase 3 | `p3-2_bad-collect_cerus`      | 97                 |
+| Phase 3 | `p3-3_rage_embodiment`        | 114                |
+| Phase 3 | `p3-4_cerus`                  | 164                |
+| Phase 3 | `p3-5_green-phase_embodiment` | 204                |
 
 Every eligible cast inside Split 1 or Split 2 belongs to that split's collect.
 Unmatched casts are discarded. A collect's raw-data search window runs from one
@@ -52,8 +52,8 @@ No physical orb can receive more than three resolved units. The solver applies
 evidence in this fixed order:
 
 1. match expected collects and establish each expected unit budget;
-2. assign filtered `Emp.A` misses to the nearest disappearance;
-3. assign `Ins.A` collections using replay positions;
+2. assign `Ins.A` collections using replay positions;
+3. assign filtered `Emp.A` misses to the nearest disappearance;
 4. infer deletion only from the capacity that remains;
 5. classify every remainder as unresolved.
 
@@ -74,21 +74,3 @@ Unresolved, and Totals. Player cells display `units (deleted)` through the
 shared `PlayerNameCell`. With one selected log, the matrix is followed by each
 orb's auditable three-unit ledger. With multiple logs, it is followed by one
 compact review row per log rather than a combined orb dump.
-
-## Validation
-
-Run:
-
-```sh
-bun test
-bun run verify:insatiable-session
-bun run audit:insatiable-deletions
-```
-
-Contract tests cover the expected timetable, ID-based cast discovery, the
-inclusive ±3-second boundary, double-collect grouping, unmatched-cast
-discarding, Malice/Rage exclusions, absent decorations, four-outcome
-conservation, delayed mechanics, three- and five-orb casts, and Cerus plugin
-integration. The session verifier checks all committed session logs. The
-deletion audit rejects any deletion without its complete proof chain and prints
-the rationale for every deletion that remains.

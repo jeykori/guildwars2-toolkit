@@ -1,8 +1,15 @@
+import type { DecorationRendering } from "../../../../../../types";
+
+export type PickupAssignments = {
+	byPlayer: Map<string, PickupWithOrb[]>;
+	unassigned: InsatiableUnassignedPlayerApplication[];
+};
+
+export type PickupWithOrb = InsatiableOrbPickup & { orbKey: number };
+
 export type InsatiableStackCounts = Record<string, number>;
 
-export type InsatiableCollectPhase =
-	| `Phase ${number}`
-	| `Split ${number}`;
+export type OrbCollectPhase = `Phase ${number}` | `Split ${number}`;
 
 export type ExpectedPhaseCollect = {
 	name: string;
@@ -29,7 +36,7 @@ export type InsatiableHungerRawCast = {
 
 export type InsatiableHungerRawCollect = {
 	name: string;
-	phase: InsatiableCollectPhase;
+	phase: OrbCollectPhase;
 	casts: InsatiableHungerRawCast[];
 	/** First cast -1 second through final cast end +1 second. */
 	searchWindow: [number, number];
@@ -56,13 +63,6 @@ export type InsatiableUnresolvedReason =
 	| "split-2-bug-despawn"
 	| "missing-decoration";
 
-export type InsatiableOrbCollectionState =
-	| "untouched"
-	| "once"
-	| "twice"
-	| "thrice"
-	| "more-than-thrice";
-
 export type InsatiableOrbPosition = readonly [number, number];
 
 export type InsatiableOrbPickup = {
@@ -72,15 +72,12 @@ export type InsatiableOrbPickup = {
 	distance: number | null;
 	/** Evidence used to associate this confirmed stack event with this orb. */
 	attribution: "position" | "terminal-time";
-	confirmed: true;
 };
 
-export type InsatiableOrbTouch = {
+export type DeletionCandidate = {
 	player: string;
 	time: number;
 	distance: number;
-	/** This is inferred from replay positions because no second Ins.A exists. */
-	confirmed: false;
 	/** The confirmed Insatiable application that made this deletion eligible. */
 	priorPickupTime: number;
 	/** Global decoration index of the orb that supplied the prior stack. */
@@ -93,17 +90,9 @@ export type InsatiableEmpoweredTransition = {
 	target: string;
 	source: string;
 	time: number;
-	stackDelta: number;
-	/** Portion of stackDelta consumed by this orb's accounting ledger. */
-	assignedUnits?: number;
 };
 
-export type InsatiableDeletionEvidence = {
-	priorInsatiableConfirmed: true;
-	noTargetInsatiableApplication: true;
-	noActorEmpoweredTransition: true;
-	uniqueTerminalContact: true;
-	actorPathClear: true;
+export type OrbDeletionEvidence = {
 	priorPickupDeltaMs: number;
 	terminalDeltaMs: number;
 	contactDistance: number;
@@ -112,7 +101,11 @@ export type InsatiableDeletionEvidence = {
 /** Every observed unit is kept with the event that proved it. */
 export type InsatiableOrbEvent =
 	| ({ type: "pickup" } & InsatiableOrbPickup)
-	| ({ type: "empowered" } & InsatiableEmpoweredTransition)
+	| ({
+			type: "empowered";
+			/** Portion of this transition consumed by this orb's accounting ledger. */
+			assignedUnits: number;
+	  } & InsatiableEmpoweredTransition)
 	| {
 			type: "delete";
 			player: string;
@@ -121,10 +114,10 @@ export type InsatiableOrbEvent =
 			priorOrbIndex: number;
 			evidence: "terminal-contact" | "causal-contact";
 			units: number;
-			proof: InsatiableDeletionEvidence;
-		};
+			proof: OrbDeletionEvidence;
+	  };
 
-export type InsatiableOrbAccounting = {
+export type SingleOrbAccounting = {
 	requiredUnits: number;
 	/** Units proven by Ins.A mechanic applications. */
 	collectedUnits: number;
@@ -136,84 +129,70 @@ export type InsatiableOrbAccounting = {
 	isBalanced: boolean;
 };
 
-export type InsatiableHungerAccounting = InsatiableOrbAccounting & {
+export type OrbCollectAccounting = SingleOrbAccounting & {
 	totalOrbs: number;
 	resolvedOrbs: number;
 	unresolvedOrbs: number;
-	unassignedPlayerStackUnits: number;
-	unassignedEmpoweredUnits: number;
 };
 
 export type InsatiableUnassignedPlayerApplication = {
 	player: string;
 	time: number;
-	stackDelta: number;
 	reason: "no-active-orb" | "ambiguous-orb";
 };
 
+/** Public serialized orb shape; parser-only tracking fields live on TrackedInsatiableOrb. */
 export type InsatiableOrb = {
 	index: number;
-	collectName: string;
-	spawnTime: number;
 	endTime: number;
-	spawnPosition: InsatiableOrbPosition;
 	endPosition: InsatiableOrbPosition;
 	events: InsatiableOrbEvent[];
-	collectionCount: number;
-	collectionState: InsatiableOrbCollectionState;
-	accounting: InsatiableOrbAccounting;
+	accounting: SingleOrbAccounting;
 	outcome: InsatiableOrbOutcome;
 	/** Null for resolved outcomes; required with a concrete reason when unresolved. */
 	unresolvedReason: InsatiableUnresolvedReason | null;
-	phaseDespawnedAt?: number;
+};
+
+export type TrackedInsatiableOrb = InsatiableOrb & {
+	decoration: DecorationRendering;
+	globalIndex: number;
+	collectName: string;
+	spawnTime: number;
+	spawnPosition: InsatiableOrbPosition;
+	collectionCount: number;
+	deletionCandidate?: DeletionCandidate;
 };
 
 export type InsatiableHungerCast = {
 	index: number;
 	source: string;
-	skillId: number;
 	castTime: number;
 	endTime: number;
 	collectName: string;
-	phase: InsatiableCollectPhase;
+	phase: OrbCollectPhase;
 	expectedOrbCount: number;
 	orbs: InsatiableOrb[];
 };
 
-export type InsatiableCollectPlayerUnits = {
+export type OrbCollectPlayerUnits = {
 	collectedUnits: number;
 	deletedUnits: number;
 };
 
-export type InsatiableHungerCollect = {
+export type SingleOrbCollect = {
 	name: string;
-	phase: InsatiableCollectPhase;
-	castStarts: number[];
-	searchWindow: [number, number];
+	phase: OrbCollectPhase;
 	expectedOrbCount: number;
-	observedOrbCount: number;
-	orbs: InsatiableOrb[];
-	players: Record<string, InsatiableCollectPlayerUnits>;
-	collectedUnits: number;
-	missedUnits: number;
-	deletedUnits: number;
-	unresolvedUnits: number;
-	/** Portion of unresolvedUnits caused by absent LargeOrbs decorations. */
-	missingDecorationUnits: number;
-	conserved: boolean;
+	players: Record<string, OrbCollectPlayerUnits>; // Frontend uses this for the matrix!
 };
 
-export type InsatiableHungerDetails = {
-	collects: InsatiableHungerCollect[];
+export type OrbCollectDetails = {
+	collects: SingleOrbCollect[];
 	casts: InsatiableHungerCast[];
-	/** Empowered transitions retained even when they do not match an orb. */
-	empoweredTransitions: InsatiableEmpoweredTransition[];
-	/** Insatiable applications that could not be assigned to one physical orb. */
-	unassignedPlayerApplications: InsatiableUnassignedPlayerApplication[];
 	/** Conservation ledger across every tracked large-orb decoration. */
-	accounting: InsatiableHungerAccounting;
+	accounting: OrbCollectAccounting;
 };
 
-export type AggregatedInsatiableHungerDetails = {
-	perLog: Record<string, InsatiableHungerDetails>;
+export type AggregatedOrbCollectDetails = {
+	perLog: Record<string, OrbCollectDetails>;
 };

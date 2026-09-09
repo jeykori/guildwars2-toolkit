@@ -1,19 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import combatReplayFixture from "../../../../playground/public/data/dps-report/cerus.cr.json";
-import reportFixture from "../../../../playground/public/data/dps-report/cerus.json";
+import combatReplayFixture from "../../../../../../../../playground/public/data/dps-report/cerus.cr.json";
+import reportFixture from "../../../../../../../../playground/public/data/dps-report/cerus.json";
 import type {
 	CombatReplayJson,
 	DpsReportJson,
-} from "../../../types/dps-report/elite-insights";
-import {
-	EXPECTED_COLLECTS,
-	getInsatiableMissedTransitions,
-	matchExpectedCollects,
-	trackInsatiableHungerOrbs,
-} from "../plugins/cerus-cm/insatiable-hunger";
+} from "../../../../../../../types/dps-report/elite-insights";
+import { EXPECTED_COLLECTS, matchExpectedCollects } from "../collects";
+import { getCollectOrbs, trackOrbCollects } from "../orbs";
+import { getInsatiableMissedTransitions } from "../processors/orb-misses";
 
-const report = reportFixture as DpsReportJson;
-const combatReplay = combatReplayFixture as CombatReplayJson;
+const report = reportFixture as unknown as DpsReportJson;
+const combatReplay = combatReplayFixture as unknown as CombatReplayJson;
 
 describe("Insatiable Hunger expected-collect contract", () => {
 	it("declares the reviewer-specified phase and split sequence", () => {
@@ -55,23 +52,23 @@ describe("Insatiable Hunger expected-collect contract", () => {
 		expect(casts.map((cast) => cast.castTime)).toEqual([
 			50320, 96554, 148352, 158714, 225955,
 		]);
-		expect(casts.map((cast) => cast.expectedOrbCount)).toEqual([
-			3, 3, 3, 3, 3,
-		]);
+		expect(casts.map((cast) => cast.expectedOrbCount)).toEqual([3, 3, 3, 3, 3]);
 	});
 
 	it("matches at the inclusive three-second tolerance and rejects outside it", () => {
 		const phaseReport = structuredClone(report);
+		const sourcePhase = report.phases[1];
+		if (!sourcePhase) throw new Error("Fixture is incomplete");
 		phaseReport.phases = [
-			{ ...report.phases[1]!, start: 10000, end: 80000, name: "Phase 1" },
+			{ ...sourcePhase, start: 10000, end: 80000, name: "Phase 1" },
 		];
 		const expected = [
 			{ name: "boundary", phase: "Phase 1" as const, times: [51] },
 		];
 
-		phaseReport.phases[0] = { ...phaseReport.phases[0]!, start: -3680 };
+		phaseReport.phases[0] = { ...sourcePhase, start: -3680 };
 		const accepted = matchExpectedCollects(phaseReport, expected);
-		phaseReport.phases[0] = { ...phaseReport.phases[0]!, start: -3681 };
+		phaseReport.phases[0] = { ...sourcePhase, start: -3681 };
 		const rejected = matchExpectedCollects(phaseReport, expected);
 
 		expect(accepted.rawCollects).toHaveLength(1);
@@ -105,12 +102,14 @@ describe("Insatiable Hunger expected-collect contract", () => {
 			(mechanic) => mechanic.name === "Emp.A",
 		);
 		if (!empowered) throw new Error("Fixture has no Emp.A mechanic");
+		const firstEmpoweredEvent = empowered.mechanicsData[0];
+		if (!firstEmpoweredEvent) throw new Error("Fixture has no Emp.A event");
 		withRage.mechanics.push({
 			...empowered,
 			name: "CryRage.H",
 			mechanicsData: [
-				{ ...empowered.mechanicsData[0]!, time: 247474 },
-				{ ...empowered.mechanicsData[0]!, time: 247475 },
+				{ ...firstEmpoweredEvent, time: 247474 },
+				{ ...firstEmpoweredEvent, time: 247475 },
 			],
 		});
 
@@ -119,7 +118,6 @@ describe("Insatiable Hunger expected-collect contract", () => {
 				target: "Cerus",
 				source: "Emp.A",
 				time: 237470,
-				stackDelta: 1,
 			},
 		]);
 	});
@@ -132,46 +130,73 @@ describe("Insatiable Hunger expected-collect contract", () => {
 				decoration.start >= 49000 &&
 				decoration.start <= 65000,
 		);
-		if (decorationIndex < 0) throw new Error("Fixture has no Phase 1 large orb");
+		if (decorationIndex < 0)
+			throw new Error("Fixture has no Phase 1 large orb");
 		replay.decorationRenderings.splice(decorationIndex, 1);
 
-		const details = trackInsatiableHungerOrbs(report, replay);
+		const details = trackOrbCollects(report, replay);
 		const collect = details.collects.find(({ name }) => name === "p1-1_cerus");
 		if (!collect) throw new Error("Fixture has no Phase 1 collect");
+		const orbs = getCollectOrbs(details.casts, collect.name);
+		const missingDecorationUnits = (collect.expectedOrbCount - orbs.length) * 3;
 
-		expect(collect.observedOrbCount).toBe(2);
-		expect(collect.missingDecorationUnits).toBe(3);
+		expect(orbs).toHaveLength(2);
+		expect(missingDecorationUnits).toBe(3);
 		expect(
-			collect.collectedUnits +
-				collect.missedUnits +
-				collect.deletedUnits +
-				collect.unresolvedUnits,
+			orbs.reduce(
+				(total, orb) =>
+					total +
+					orb.accounting.collectedUnits +
+					orb.accounting.missedUnits +
+					orb.accounting.deletedUnits +
+					orb.accounting.unresolvedUnits,
+				0,
+			) + missingDecorationUnits,
 		).toBe(collect.expectedOrbCount * 3);
 	});
 
 	it("skips deletion inference when collections and misses fill the collect", () => {
-		const details = trackInsatiableHungerOrbs(report, combatReplay);
+		const details = trackOrbCollects(report, combatReplay);
 		const collect = details.collects.find(({ name }) => name === "p2-2_cerus");
 		if (!collect) throw new Error("Fixture has no final Phase 2 collect");
+		const orbs = getCollectOrbs(details.casts, collect.name);
 
-		expect(collect.collectedUnits + collect.missedUnits).toBe(9);
-		expect(collect.missedUnits).toBe(1);
-		expect(collect.deletedUnits).toBe(0);
-		expect(collect.unresolvedUnits).toBe(0);
-		expect(collect.orbs.every((orb) => !orb.events.some((event) => event.type === "delete"))).toBe(true);
+		expect(
+			orbs.reduce((total, orb) => total + orb.accounting.collectedUnits, 0) +
+				orbs.reduce((total, orb) => total + orb.accounting.missedUnits, 0),
+		).toBe(9);
+		expect(
+			orbs.reduce((total, orb) => total + orb.accounting.missedUnits, 0),
+		).toBe(1);
+		expect(
+			orbs.reduce((total, orb) => total + orb.accounting.deletedUnits, 0),
+		).toBe(0);
+		expect(
+			orbs.reduce((total, orb) => total + orb.accounting.unresolvedUnits, 0),
+		).toBe(0);
+		expect(
+			orbs.every((orb) => !orb.events.some((event) => event.type === "delete")),
+		).toBe(true);
 	});
 
 	it("conserves every expected unit into exactly four outcomes", () => {
-		const details = trackInsatiableHungerOrbs(report, combatReplay);
+		const details = trackOrbCollects(report, combatReplay);
 		for (const collect of details.collects) {
-			expect(collect.conserved).toBe(true);
+			const orbs = getCollectOrbs(details.casts, collect.name);
+			const missingDecorationUnits =
+				(collect.expectedOrbCount - orbs.length) * 3;
 			expect(
-				collect.collectedUnits +
-					collect.missedUnits +
-					collect.deletedUnits +
-					collect.unresolvedUnits,
+				orbs.reduce(
+					(total, orb) =>
+						total +
+						orb.accounting.collectedUnits +
+						orb.accounting.missedUnits +
+						orb.accounting.deletedUnits +
+						orb.accounting.unresolvedUnits,
+					0,
+				) + missingDecorationUnits,
 			).toBe(collect.expectedOrbCount * 3);
-			for (const orb of collect.orbs) {
+			for (const orb of orbs) {
 				expect(
 					orb.accounting.collectedUnits +
 						orb.accounting.missedUnits +

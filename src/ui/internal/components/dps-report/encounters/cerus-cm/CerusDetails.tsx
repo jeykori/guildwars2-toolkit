@@ -6,8 +6,8 @@ import { DpsCheckTable } from "./DpsCheckTable";
 import { FlowerBreakdownTable } from "./FlowerBreakdownTable";
 import { FlowerFailGraph } from "./FlowerFailGraph";
 import { FlowerFailTable } from "./FlowerFailTable";
-import { InsatiableHungerTable } from "./InsatiableHungerTable";
 import { MaliceFailTable } from "./MaliceFailTable";
+import { OrbCollectDetails } from "./OrbCollectDetails";
 import { PortalPerformanceTable } from "./PortalPerformanceTable";
 
 export const CerusDetails = (props: PluginEncounterProps<25989>) => {
@@ -15,20 +15,18 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 
 	return (
 		<div className="flex flex-col items-start gap-6 w-full">
-			<div className="flex flex-wrap gap-4 w-full items-stretch">
-				{/* First card: Fixed width, no shrink */}
-				<div className="w-full sm:w-72 shrink-0">
+			<div className="flex flex-col lg:flex-row gap-4 w-full items-stretch">
+				{/* First card: Fixed width sidebar */}
+				<div className="w-full lg:w-[16.5rem] shrink-0">
 					<CerusPhaseThresholdsCard filteredLogs={filteredLogs} />
 				</div>
 
-				{metrics.map((metric) => (
-					<div
-						key={metric.id}
-						className="flex-1 min-w-46.25 max-w-full sm:max-w-65"
-					>
-						<MetricWidget metric={metric} {...props} />
-					</div>
-				))}
+				{/* Metrics container: A dedicated grid that scales naturally */}
+				<div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-stretch">
+					{metrics.map((metric) => (
+						<MetricWidget key={metric.id} metric={metric} {...props} />
+					))}
+				</div>
 			</div>
 
 			<div className="w-full">
@@ -44,7 +42,7 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 				<TabsList>
 					<TabsTrigger value="dps">50%-10% DPS Check</TabsTrigger>
 					<TabsTrigger value="flower-stats">Flower Statistics</TabsTrigger>
-					<TabsTrigger value="insatiable-hunger">Insatiable Hunger</TabsTrigger>
+					<TabsTrigger value="orb-collects">Orb Collects</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="dps" className="">
@@ -57,8 +55,8 @@ export const CerusDetails = (props: PluginEncounterProps<25989>) => {
 					<FlowerFailGraph {...props} />
 				</TabsContent>
 
-				<TabsContent value="insatiable-hunger">
-					<InsatiableHungerTable {...props} />
+				<TabsContent value="orb-collects">
+					<OrbCollectDetails {...props} />
 				</TabsContent>
 			</Tabs>
 		</div>
