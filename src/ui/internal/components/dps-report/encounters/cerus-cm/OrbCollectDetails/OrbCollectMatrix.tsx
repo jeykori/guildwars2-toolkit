@@ -148,8 +148,6 @@ export const OrbCollectMatrix = ({
 		let currentGroup: { id: string; phase: string; count: number } | undefined;
 
 		for (const [, col] of matrix.columns) {
-			if (col.name.startsWith("split-")) continue;
-
 			if (!currentGroup || currentGroup.phase !== col.phase) {
 				currentGroup = {
 					id: `phase-${col.phase}-${groups.length}`,
@@ -165,7 +163,7 @@ export const OrbCollectMatrix = ({
 	}, [matrix.columns]);
 
 	const validColumns = useMemo(
-		() => matrix.columns.filter(([, col]) => !col.name.startsWith("split-")),
+		() => matrix.columns, // Removed the .filter() completely
 		[matrix.columns],
 	);
 
