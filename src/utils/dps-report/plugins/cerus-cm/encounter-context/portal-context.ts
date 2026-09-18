@@ -159,6 +159,7 @@ export const getPortalContext = (
 const getMechanicConfig = (mechanic: CerusMechanic) => {
 	switch (mechanic) {
 		case "malice":
+		case "extra-malice":
 			return CERUS_MECHANIC_TIMINGS.malice;
 		case "flower":
 			return CERUS_MECHANIC_TIMINGS.despair;

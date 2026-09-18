@@ -278,6 +278,12 @@ const p3: ExpectedPortal[] = [
 				bufferBeforeHit: 0.7, // allow tigher window
 			},
 			{
+				mechanic: "extra-malice",
+				expectedCastTime: 129,
+				bufferBeforeHit: 6.5, // Open before cast
+				bufferAfterHit: 0.0, // doesn't matter
+			},
+			{
 				mechanic: "flower",
 				expectedCastTime: 128.9,
 				bufferAfterHit: 0.3, // allow tigher window

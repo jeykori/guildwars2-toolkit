@@ -55,6 +55,7 @@ const p3MaliceTimings = [
 		name: "P3-4-extra-malice",
 		time: 135,
 		failOnTarget: true,
+		portalId: FLOWER_PORTAL_IDS.p3[7],
 	},
 	{
 		name: "P3-4-spiral",

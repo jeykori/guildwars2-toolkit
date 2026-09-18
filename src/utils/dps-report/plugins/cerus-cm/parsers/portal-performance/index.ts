@@ -14,6 +14,7 @@ import type { PortalPerformance } from "./types";
 
 // Helper to quickly grab the duration for the hit time check
 const MECHANIC_DURATIONS: Record<CerusMechanic, number> = {
+	"extra-malice": CERUS_MECHANIC_TIMINGS.malice.durations.castToHit,
 	malice: CERUS_MECHANIC_TIMINGS.malice.durations.castToHit,
 	rage: CERUS_MECHANIC_TIMINGS.rage.durations.castToHit,
 	flower: CERUS_MECHANIC_TIMINGS.despair.durations.castToHit,

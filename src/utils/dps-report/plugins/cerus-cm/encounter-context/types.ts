@@ -1,7 +1,12 @@
 import type { CerusPhase } from "../types";
 import type { FLOWER_PORTAL_IDS } from "./constants";
 
-export type CerusMechanic = "malice" | "rage" | "flower" | "bad-collect";
+export type CerusMechanic =
+	| "extra-malice"
+	| "malice"
+	| "rage"
+	| "flower"
+	| "bad-collect";
 
 export interface ExpectedPortal {
 	id: string;

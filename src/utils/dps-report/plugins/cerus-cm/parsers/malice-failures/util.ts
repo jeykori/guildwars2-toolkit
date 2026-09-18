@@ -48,7 +48,7 @@ export const checkMaliceFailures = (
 
 		if (timing.portalId) {
 			const portalResult = getValidPortal(encounterContext, timing.portalId, [
-				"malice",
+				timing.failOnTarget ? "extra-malice" : "malice",
 			]);
 
 			if (!portalResult.isValid) {
