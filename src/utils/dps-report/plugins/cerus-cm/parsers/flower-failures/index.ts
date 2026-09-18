@@ -105,6 +105,7 @@ export const flowerFailuresMetrics: CustomMetricDefinition[] = [
 
 const createZeroMatrix = (): FlowerFailMatrix => ({
 	fails: 0,
+	totalAttempts: 0,
 	initialHit: 0,
 	poolTick: 0,
 	terroristPuddle: 0,
@@ -141,6 +142,7 @@ const mergeMatrixInto = (
 	source: FlowerFailMatrix,
 ) => {
 	target.fails += source.fails;
+	target.totalAttempts += source.totalAttempts;
 	target.initialHit += source.initialHit;
 	target.poolTick += source.poolTick;
 	target.terroristPuddle += source.terroristPuddle;
@@ -209,6 +211,8 @@ export const parseFlowerFailuresMetric: CerusSubParser = (
 			);
 
 			const failMatrix = createZeroMatrix();
+
+			failMatrix.totalAttempts = result.playerAttempts[player.account] || 0;
 
 			// 1. Tally Standard Flower Fails
 			for (const fail of playerFails) {

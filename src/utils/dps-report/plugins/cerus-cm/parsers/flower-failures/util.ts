@@ -95,10 +95,12 @@ export function checkFlowerFailures(
 
 	const playerDeathTimes = new Map<string, number>();
 	for (const player of logData.players) {
-		playerAttempts[player.name] = 0;
-		const playerDeathTime = deaths.find((d) => d.actor === player.name)?.time;
+		playerAttempts[player.account] = 0;
+		const playerDeathTime = deaths.find(
+			(d) => d.actor === player.account,
+		)?.time;
 		if (playerDeathTime !== undefined) {
-			playerDeathTimes.set(player.name, playerDeathTime);
+			playerDeathTimes.set(player.account, playerDeathTime);
 		}
 	}
 
@@ -135,9 +137,11 @@ export function checkFlowerFailures(
 
 		// 1) Track Attempts
 		for (const player of logData.players) {
-			const deathTime = playerDeathTimes.get(player.name) || logData.durationMS;
+			const deathTime =
+				playerDeathTimes.get(player.account) || logData.durationMS;
 			if (deathTime > flower.expectedInitialHitTime) {
-				playerAttempts[player.name] = (playerAttempts[player.name] || 0) + 1;
+				playerAttempts[player.account] =
+					(playerAttempts[player.account] || 0) + 1;
 			}
 		}
 

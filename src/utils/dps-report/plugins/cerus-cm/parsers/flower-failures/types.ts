@@ -35,12 +35,13 @@ export interface TerroristPuddleFail {
 export interface FlowerMechanicsResult {
 	flowerFails: FlowerFail[];
 	terroristPuddles: TerroristPuddleFail[];
-	/** Maps player name to the total number of flowers they were alive for */
+	/** Maps player account to the total number of flowers they were alive for */
 	playerAttempts: Record<string, number>;
 }
 
 export type FlowerFailMatrix = {
 	fails: number;
+	totalAttempts: number;
 	initialHit: number;
 	poolTick: number;
 	terroristPuddle: number;
