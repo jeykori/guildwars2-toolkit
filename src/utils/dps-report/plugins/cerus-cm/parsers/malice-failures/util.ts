@@ -1,7 +1,7 @@
 import type { DpsReportJson } from "../../../../../../types";
 import { getEuclideanDist } from "../../../../utils";
 import { getValidPortal } from "../../encounter-context/context";
-import type { CerusEncounterContext } from "../../types";
+import type { CerusEncounterContext, PortalEvent } from "../../types";
 import type { MaliceTime } from "./types";
 
 const MALICE_TARGET_ID = 25645;
@@ -44,16 +44,20 @@ export const checkMaliceFailures = (
 	}
 
 	for (const timing of timings) {
-		// 2. Validate portal if provided
-		const portalResult = timing.portalId
-			? getValidPortal(encounterContext, timing.portalId, ["malice"])
-			: ({ isValid: false } as const);
+		let portal: PortalEvent | null = null;
 
-		if (!portalResult.isValid) {
-			continue;
+		if (timing.portalId) {
+			const portalResult = getValidPortal(encounterContext, timing.portalId, [
+				"malice",
+			]);
+
+			if (!portalResult.isValid) {
+				// Forgive if portal was invalid
+				continue;
+			}
+
+			portal = portalResult.portal;
 		}
-
-		const { portal } = portalResult;
 
 		// 3. Define the target timing window (5 seconds before the expected drop)
 		const expectedTargetTimeMs = phaseStart + timing.time * 1000 - 5000;
@@ -163,7 +167,10 @@ export const checkMaliceFailures = (
 
 				// Blame the player physically closest to the misplaced Malice
 				if (closestActor) {
-					failedActors.push({ actor: closestActor, maliceName: timing.name });
+					failedActors.push({
+						actor: closestActor,
+						maliceName: timing.name,
+					});
 					blamedInThisWave.add(closestActor);
 				}
 			}
