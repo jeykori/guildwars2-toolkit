@@ -93,12 +93,11 @@ export function checkFlowerFailures(
 	const downs = findMechanic(MECHANICS.downed, mechanics);
 	const deaths = findMechanic(MECHANICS.dead, mechanics);
 
+	// key = account
 	const playerDeathTimes = new Map<string, number>();
 	for (const player of logData.players) {
 		playerAttempts[player.account] = 0;
-		const playerDeathTime = deaths.find(
-			(d) => d.actor === player.account,
-		)?.time;
+		const playerDeathTime = deaths.find((d) => d.actor === player.name)?.time;
 		if (playerDeathTime !== undefined) {
 			playerDeathTimes.set(player.account, playerDeathTime);
 		}
