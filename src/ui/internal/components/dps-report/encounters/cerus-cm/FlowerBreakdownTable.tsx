@@ -30,6 +30,7 @@ type FlattenedBreakdownRow = {
 
 const EMPTY_MATRIX: FlowerFailMatrix = {
 	fails: 0,
+	totalAttempts: 0,
 	initialHit: 0,
 	poolTick: 0,
 	terroristPuddle: 0,
