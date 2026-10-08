@@ -19,6 +19,7 @@ export default defineConfig({
 				import.meta.dirname,
 				"../src",
 			),
+			recharts: path.resolve(import.meta.dirname, "node_modules/recharts"),
 		},
 		dedupe: ["react", "react-dom", "recharts"],
 	},
