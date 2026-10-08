@@ -9,7 +9,7 @@ export default function App() {
 			<Routes>
 				<Route path="/parse-dps-report" element={<DpsReportPage />} />
 				<Route
-					path="/dps-report-summary/:reportId"
+					path="/dps-report-summary/:reportIds"
 					element={<ReportSummaryPage />}
 				/>
 

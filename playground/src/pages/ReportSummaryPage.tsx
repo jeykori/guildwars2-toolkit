@@ -6,11 +6,11 @@ import { useParams } from "react-router";
 import useSWR from "swr";
 
 export default function ReportSummaryPage() {
-	const { reportId } = useParams<{ reportId: string }>();
+	const { reportIds } = useParams<{ reportIds: string }>();
 
 	const { data, error, isLoading } = useSWR(
-		reportId ? ["report-summary", reportId] : null,
-		([, id]) => getDpsReportSummary(id),
+		reportIds ? ["report-summary", reportIds] : null,
+		([, ids]) => getDpsReportSummary(ids),
 		{ revalidateOnFocus: false },
 	);
 
@@ -20,8 +20,10 @@ export default function ReportSummaryPage() {
 		document.title = `${fights.length === 1 ? fights[0].name : "DPS Report Summary"} | Jeyes`;
 	}, [data]);
 
-	if (isLoading)
+	if (isLoading) {
 		return <div className="p-8 text-muted-foreground">Loading summary...</div>;
+	}
+
 	if (error || !data) return <NotFoundPage />;
 
 	return <DpsReportSummaryLayout data={data} />;

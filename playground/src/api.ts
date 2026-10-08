@@ -38,9 +38,9 @@ async function fetchJson<T>(
 }
 
 export async function getDpsReportSummary(
-	reportId: string,
+	reportIds: string,
 ): Promise<DpsReportSummary> {
-	if (reportId === "cerus-session") {
+	if (reportIds === "cerus-session") {
 		const reportPromises = Array.from({ length: 11 }, async (_, i) => {
 			const res = await fetch(`/data/log-data/cerus-session/${i + 1}.json`);
 			if (!res.ok) {
@@ -54,7 +54,10 @@ export async function getDpsReportSummary(
 		return DpsReport.assembleReports(reports);
 	}
 
-	return DpsReport.assembleReports([await getLogData(reportId)]);
+	const reportIdList = reportIds.split(",");
+	const reports = await Promise.all(reportIdList.map((id) => getLogData(id)));
+
+	return DpsReport.assembleReports(reports);
 }
 
 export async function getLogData(reportId: string): Promise<LogData> {
