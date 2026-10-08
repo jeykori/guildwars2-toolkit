@@ -84,7 +84,7 @@ type Player = {
 	combatReplayData: CombatData;
 	buffUptimes: BuffUptime[];
 	buffUptimesActive: BuffUptime[];
-	groupBuffsActive: Buffs[];
+	groupBuffsActive?: Buffs[];
 	defenses: {
 		damageTaken: number;
 		downCount: number;

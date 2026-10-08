@@ -103,7 +103,8 @@ const getGroupBuffGeneration = (
 	phaseIndex: number,
 ) => {
 	return (
-		player.groupBuffsActive.find((b) => b.id === buffId)?.buffData?.[phaseIndex]
-			?.generation ?? 0
+		player.groupBuffsActive?.find((b) => b.id === buffId)?.buffData?.[
+			phaseIndex
+		]?.generation ?? 0
 	);
 };
