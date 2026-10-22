@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import { areAllLogsIncluded } from "../../utils/log-selection";
 interface ReportFiltersProps {
 	visibleLogs: LogSummary[];
 	filteredLogs: LogSummary[];
-	sortedAllLogs: LogSummary[];
 	overview: DpsReportSummary["overview"];
 	maxHpLeft: number;
 	setMaxHpLeft: (val: number) => void;
@@ -44,7 +43,6 @@ const formatPriorityLabel = (priorities: string[], name: string) => {
 export function ReportFilters({
 	visibleLogs,
 	filteredLogs,
-	sortedAllLogs,
 	overview,
 	maxHpLeft,
 	setMaxHpLeft,
@@ -58,10 +56,16 @@ export function ReportFilters({
 	selectedTargetFilters,
 	toggleTargetFilter,
 }: ReportFiltersProps) {
-	const sortedVisibleLogs = sortedAllLogs.filter(
-		(l) => 100 - l.maxHealthPercentBurned <= maxHpLeft,
-	);
-	const allVisibleSelected = areAllLogsIncluded(visibleLogs, excludedLogIds);
+	const sortedVisibleLogs = useMemo(() => {
+		return [...visibleLogs].sort(
+			(a, b) =>
+				new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+		);
+	}, [visibleLogs]);
+
+	const allVisibleSelected = useMemo(() => {
+		return areAllLogsIncluded(visibleLogs, excludedLogIds);
+	}, [visibleLogs, excludedLogIds]);
 
 	return (
 		<Card>

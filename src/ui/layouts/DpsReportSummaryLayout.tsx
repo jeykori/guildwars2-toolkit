@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { DpsReportSummary, EncounterDetailStates } from "../../types";
@@ -46,13 +45,6 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 
 	const { overview } = data;
 
-	const sortedAllLogs = useMemo(() => {
-		return [...data.logs].sort(
-			(a, b) =>
-				new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
-		);
-	}, [data]);
-
 	return (
 		<TooltipProvider>
 			<div className={"max-w-7xl mx-auto p-6 space-y-8"}>
@@ -61,7 +53,6 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 				<ReportFilters
 					visibleLogs={visibleLogs}
 					filteredLogs={filteredLogs}
-					sortedAllLogs={sortedAllLogs}
 					overview={overview}
 					maxHpLeft={maxHpLeft}
 					setMaxHpLeft={setMaxHpLeft}
