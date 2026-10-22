@@ -30,13 +30,14 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 		setMaxHpLeft,
 		excludedLogIds,
 		toggleLog,
-		setLogsIncluded,
+		toggleVisibleLogs,
 		availablePhases,
 		selectedPhaseNames,
 		togglePhase,
 		availableTargets,
 		selectedTargetFilters,
 		toggleTargetFilter,
+		visibleLogs,
 		filteredLogs,
 		aggregatedPlayers,
 		activeMetricsDictionary,
@@ -58,6 +59,7 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 				<ReportSummaryHeader overview={overview} />
 
 				<ReportFilters
+					visibleLogs={visibleLogs}
 					filteredLogs={filteredLogs}
 					sortedAllLogs={sortedAllLogs}
 					overview={overview}
@@ -65,7 +67,7 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 					setMaxHpLeft={setMaxHpLeft}
 					excludedLogIds={excludedLogIds}
 					toggleLog={toggleLog}
-					setLogsIncluded={setLogsIncluded}
+					toggleVisibleLogs={toggleVisibleLogs}
 					availablePhases={availablePhases}
 					selectedPhaseNames={selectedPhaseNames}
 					togglePhase={togglePhase}

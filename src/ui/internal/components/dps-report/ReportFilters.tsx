@@ -8,9 +8,10 @@ import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import type { DpsReportSummary, LogSummary } from "../../../../types";
 import { formatMs } from "../../utils/format";
-import { areAllLogsIncluded, getVisibleLogs } from "../../utils/log-selection";
+import { areAllLogsIncluded } from "../../utils/log-selection";
 
 interface ReportFiltersProps {
+	visibleLogs: LogSummary[];
 	filteredLogs: LogSummary[];
 	sortedAllLogs: LogSummary[];
 	overview: DpsReportSummary["overview"];
@@ -18,7 +19,7 @@ interface ReportFiltersProps {
 	setMaxHpLeft: (val: number) => void;
 	excludedLogIds: Set<string>;
 	toggleLog: (id: string) => void;
-	setLogsIncluded: (ids: string[], included: boolean) => void;
+	toggleVisibleLogs: (selected: boolean) => void;
 	availablePhases: Array<{
 		name: string;
 		type: string;
@@ -41,6 +42,7 @@ const formatPriorityLabel = (priorities: string[], name: string) => {
 };
 
 export function ReportFilters({
+	visibleLogs,
 	filteredLogs,
 	sortedAllLogs,
 	overview,
@@ -48,7 +50,7 @@ export function ReportFilters({
 	setMaxHpLeft,
 	excludedLogIds,
 	toggleLog,
-	setLogsIncluded,
+	toggleVisibleLogs,
 	availablePhases,
 	selectedPhaseNames,
 	togglePhase,
@@ -56,7 +58,9 @@ export function ReportFilters({
 	selectedTargetFilters,
 	toggleTargetFilter,
 }: ReportFiltersProps) {
-	const visibleLogs = getVisibleLogs(sortedAllLogs, maxHpLeft);
+	const sortedVisibleLogs = sortedAllLogs.filter(
+		(l) => 100 - l.maxHealthPercentBurned <= maxHpLeft,
+	);
 	const allVisibleSelected = areAllLogsIncluded(visibleLogs, excludedLogIds);
 
 	return (
@@ -93,18 +97,13 @@ export function ReportFilters({
 								variant="ghost"
 								size="xs"
 								disabled={visibleLogs.length === 0}
-								onClick={() =>
-									setLogsIncluded(
-										visibleLogs.map((l) => l.id),
-										!allVisibleSelected,
-									)
-								}
+								onClick={() => toggleVisibleLogs(!allVisibleSelected)}
 							>
 								{allVisibleSelected ? "Deselect All" : "Select All"}
 							</Button>
 						</div>
 						<div className="max-h-48 overflow-y-auto rounded-md border p-1">
-							{visibleLogs.map((log) => {
+							{sortedVisibleLogs.map((log) => {
 								const hpLeft = 100 - log.maxHealthPercentBurned;
 								const bossName =
 									log.bossName || log.name || overview.fights[0]?.name;
@@ -149,7 +148,7 @@ export function ReportFilters({
 									</Field>
 								);
 							})}
-							{visibleLogs.length === 0 && (
+							{sortedVisibleLogs.length === 0 && (
 								<div className="p-2 text-sm text-muted-foreground">
 									No logs match criteria.
 								</div>
