@@ -1,5 +1,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -7,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import type { DpsReportSummary, LogSummary } from "../../../../types";
 import { formatMs } from "../../utils/format";
+import { areAllLogsIncluded, getVisibleLogs } from "../../utils/log-selection";
 
 interface ReportFiltersProps {
 	filteredLogs: LogSummary[];
@@ -16,6 +18,7 @@ interface ReportFiltersProps {
 	setMaxHpLeft: (val: number) => void;
 	excludedLogIds: Set<string>;
 	toggleLog: (id: string) => void;
+	setLogsIncluded: (ids: string[], included: boolean) => void;
 	availablePhases: Array<{
 		name: string;
 		type: string;
@@ -45,6 +48,7 @@ export function ReportFilters({
 	setMaxHpLeft,
 	excludedLogIds,
 	toggleLog,
+	setLogsIncluded,
 	availablePhases,
 	selectedPhaseNames,
 	togglePhase,
@@ -52,6 +56,9 @@ export function ReportFilters({
 	selectedTargetFilters,
 	toggleTargetFilter,
 }: ReportFiltersProps) {
+	const visibleLogs = getVisibleLogs(sortedAllLogs, maxHpLeft);
+	const allVisibleSelected = areAllLogsIncluded(visibleLogs, excludedLogIds);
+
 	return (
 		<Card>
 			<CardContent className="space-y-4">
@@ -78,64 +85,71 @@ export function ReportFilters({
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 					{/* Included Logs */}
 					<div className="space-y-2">
-						<h3 className="text-sm font-medium">
-							Included Logs ({filteredLogs.length})
-						</h3>
+						<div className="flex items-center justify-between">
+							<h3 className="text-sm font-medium">
+								Included Logs ({filteredLogs.length})
+							</h3>
+							<Button
+								variant="ghost"
+								size="xs"
+								disabled={visibleLogs.length === 0}
+								onClick={() =>
+									setLogsIncluded(
+										visibleLogs.map((l) => l.id),
+										!allVisibleSelected,
+									)
+								}
+							>
+								{allVisibleSelected ? "Deselect All" : "Select All"}
+							</Button>
+						</div>
 						<div className="max-h-48 overflow-y-auto rounded-md border p-1">
-							{sortedAllLogs
-								.filter((l) => 100 - l.maxHealthPercentBurned <= maxHpLeft)
-								.map((log) => {
-									const hpLeft = 100 - log.maxHealthPercentBurned;
-									const bossName =
-										log.bossName || log.name || overview.fights[0]?.name;
-									const timeStr = new Intl.DateTimeFormat(undefined, {
-										timeStyle: "short",
-									}).format(new Date(log.startTime));
-									const isChecked = !excludedLogIds.has(log.id);
+							{visibleLogs.map((log) => {
+								const hpLeft = 100 - log.maxHealthPercentBurned;
+								const bossName =
+									log.bossName || log.name || overview.fights[0]?.name;
+								const timeStr = new Intl.DateTimeFormat(undefined, {
+									timeStyle: "short",
+								}).format(new Date(log.startTime));
+								const isChecked = !excludedLogIds.has(log.id);
 
-									return (
-										<Field
-											key={log.id}
-											orientation="horizontal"
-											className="cursor-pointer rounded-sm px-2 py-0.5 hover:bg-accent"
+								return (
+									<Field
+										key={log.id}
+										orientation="horizontal"
+										className="cursor-pointer rounded-sm px-2 py-0.5 hover:bg-accent"
+									>
+										<Checkbox
+											id={`log-${log.id}`}
+											checked={isChecked}
+											onCheckedChange={() => toggleLog(log.id)}
+										/>
+										<FieldLabel
+											htmlFor={`log-${log.id}`}
+											className="flex flex-1 items-center gap-3 cursor-pointer text-xs"
 										>
-											<Checkbox
-												id={`log-${log.id}`}
-												checked={isChecked}
-												onCheckedChange={() => toggleLog(log.id)}
-											/>
-											<FieldLabel
-												htmlFor={`log-${log.id}`}
-												className="flex flex-1 items-center gap-3 cursor-pointer text-xs"
-											>
-												<span className="font-medium shrink-0">{timeStr}</span>
-												<span className="flex-1 truncate text-muted-foreground">
-													{bossName}
-												</span>
-												<span className="shrink-0">
-													{formatMs(log.durationMs)}
-												</span>
-												<span className="shrink-0 font-medium">
-													{hpLeft.toFixed(1)}% left
-												</span>
-												<span className="shrink-0">
-													{log.success ? (
-														<span className="text-emerald-500 font-bold">
-															✓
-														</span>
-													) : (
-														<span className="text-destructive font-bold">
-															✕
-														</span>
-													)}
-												</span>
-											</FieldLabel>
-										</Field>
-									);
-								})}
-							{sortedAllLogs.filter(
-								(l) => 100 - l.maxHealthPercentBurned <= maxHpLeft,
-							).length === 0 && (
+											<span className="font-medium shrink-0">{timeStr}</span>
+											<span className="flex-1 truncate text-muted-foreground">
+												{bossName}
+											</span>
+											<span className="shrink-0">
+												{formatMs(log.durationMs)}
+											</span>
+											<span className="shrink-0 font-medium">
+												{hpLeft.toFixed(1)}% left
+											</span>
+											<span className="shrink-0">
+												{log.success ? (
+													<span className="text-emerald-500 font-bold">✓</span>
+												) : (
+													<span className="text-destructive font-bold">✕</span>
+												)}
+											</span>
+										</FieldLabel>
+									</Field>
+								);
+							})}
+							{visibleLogs.length === 0 && (
 								<div className="p-2 text-sm text-muted-foreground">
 									No logs match criteria.
 								</div>

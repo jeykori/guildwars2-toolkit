@@ -30,6 +30,7 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 		setMaxHpLeft,
 		excludedLogIds,
 		toggleLog,
+		setLogsIncluded,
 		availablePhases,
 		selectedPhaseNames,
 		togglePhase,
@@ -64,6 +65,7 @@ export function DpsReportSummaryLayout({ data }: DpsReportSummaryLayoutProps) {
 					setMaxHpLeft={setMaxHpLeft}
 					excludedLogIds={excludedLogIds}
 					toggleLog={toggleLog}
+					setLogsIncluded={setLogsIncluded}
 					availablePhases={availablePhases}
 					selectedPhaseNames={selectedPhaseNames}
 					togglePhase={togglePhase}

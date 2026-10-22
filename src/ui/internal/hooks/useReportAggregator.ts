@@ -16,12 +16,14 @@ import type {
 	TargetPriority,
 } from "../../../types";
 import { aggregateReport } from "../../../utils/dps-report";
+import { setLogsInclusion } from "../utils/log-selection";
 
 export type UseReportAggregatorResult = {
 	maxHpLeft: number;
 	setMaxHpLeft: Dispatch<SetStateAction<number>>;
 	excludedLogIds: Set<string>;
 	toggleLog: (id: string) => void;
+	setLogsIncluded: (ids: string[], included: boolean) => void;
 	availablePhases: {
 		name: string;
 		type: LogPhase["type"];
@@ -134,6 +136,10 @@ export function useReportAggregator(
 		});
 	};
 
+	const setLogsIncluded = (ids: string[], included: boolean) => {
+		setExcludedLogIds((prev) => setLogsInclusion(prev, ids, included));
+	};
+
 	const toggleTargetFilter = (filterKey: string) => {
 		setSelectedTargetFilters((prev) => {
 			if (filterKey === "MAIN_BLOCKING") {
@@ -232,6 +238,7 @@ export function useReportAggregator(
 		setMaxHpLeft,
 		excludedLogIds,
 		toggleLog,
+		setLogsIncluded,
 		availablePhases,
 		selectedPhaseNames,
 		togglePhase,
