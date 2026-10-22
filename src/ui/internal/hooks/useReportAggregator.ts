@@ -22,6 +22,7 @@ export type UseReportAggregatorResult = {
 	setMaxHpLeft: Dispatch<SetStateAction<number>>;
 	excludedLogIds: Set<string>;
 	toggleLog: (id: string) => void;
+	toggleVisibleLogs: (selected: boolean) => void;
 	availablePhases: {
 		name: string;
 		type: LogPhase["type"];
@@ -36,6 +37,7 @@ export type UseReportAggregatorResult = {
 	}[];
 	selectedTargetFilters: Set<string>;
 	toggleTargetFilter: (filterKey: string) => void;
+	visibleLogs: LogSummary[];
 	filteredLogs: LogSummary[];
 	aggregatedPlayers: AggregatedPlayer[];
 	activeMetricsDictionary: CustomMetricDefinition[];
@@ -55,14 +57,16 @@ export function useReportAggregator(
 		Set<string>
 	>(new Set(["MAIN_BLOCKING"]));
 
-	const filteredLogs = useMemo(() => {
+	const visibleLogs = useMemo(() => {
 		if (!data) return [];
 		return data.logs.filter(
-			(log) =>
-				100 - log.maxHealthPercentBurned <= maxHpLeft &&
-				!excludedLogIds.has(log.id),
+			(log) => 100 - log.maxHealthPercentBurned <= maxHpLeft,
 		);
-	}, [data, maxHpLeft, excludedLogIds]);
+	}, [data, maxHpLeft]);
+
+	const filteredLogs = useMemo(() => {
+		return visibleLogs.filter((log) => !excludedLogIds.has(log.id));
+	}, [visibleLogs, excludedLogIds]);
 
 	const availablePhases = useMemo(() => {
 		const map = new Map<
@@ -130,6 +134,17 @@ export function useReportAggregator(
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
 			else next.add(id);
+			return next;
+		});
+	};
+
+	const toggleVisibleLogs = (selected: boolean) => {
+		setExcludedLogIds((prev) => {
+			const next = new Set(prev);
+			visibleLogs.forEach((log) => {
+				if (selected) next.delete(log.id);
+				else next.add(log.id);
+			});
 			return next;
 		});
 	};
@@ -232,12 +247,14 @@ export function useReportAggregator(
 		setMaxHpLeft,
 		excludedLogIds,
 		toggleLog,
+		toggleVisibleLogs,
 		availablePhases,
 		selectedPhaseNames,
 		togglePhase,
 		availableTargets,
 		selectedTargetFilters,
 		toggleTargetFilter,
+		visibleLogs,
 		filteredLogs,
 		aggregatedPlayers,
 		activeMetricsDictionary,

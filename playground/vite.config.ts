@@ -20,6 +20,6 @@ export default defineConfig({
 				"../src",
 			),
 		},
-		dedupe: ["react", "react-dom"],
+		dedupe: ["react", "react-dom", "recharts"],
 	},
 });
